@@ -51,7 +51,7 @@ export const boardController = {
         color,
         ipAddress,
       });
-      triggerNoteAdded(note);
+      await triggerNoteAdded(note);
       res.status(201).json({ success: true, message: "Note added successfully", data: note });
     } catch (error: any) {
       if (error.message?.includes("IP limit reached")) {
