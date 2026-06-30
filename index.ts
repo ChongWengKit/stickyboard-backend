@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import boardRoutes from "./src/routes/boardRoutes.js";
-import rateLimit from "express-rate-limit";
+import { rateLimit } from 'express-rate-limit';
 const allowedOrigins = [
   process.env.FRONTEND_URL,
 ];
