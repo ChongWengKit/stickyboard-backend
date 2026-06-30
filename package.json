@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node index.ts",
-     "build": "prisma generate && prisma migrate deploy && tsc",
+    "build": "prisma generate && prisma migrate deploy && tsc",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
@@ -27,6 +27,7 @@
     "pusher": "^5.3.4"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.0.1",
     "@types/node-cron": "^3.0.11",
