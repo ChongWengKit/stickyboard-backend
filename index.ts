@@ -1,15 +1,29 @@
 import express from "express";
 import cors from "cors";
 import boardRoutes from "./src/routes/boardRoutes.js";
-
+const allowedOrigins = [
+  process.env.FRONTEND_DOMAIN,
+];
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.FRONTEND_URL || 3001;
 
-app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:3000" || "http://192.168.0.171:3000"}));
+app.use(cors({
+
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+  
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+app.options('*splat', cors());
 app.use(express.json());
 app.use("/api", boardRoutes);
 
 
 app.listen(PORT, () => {
-  console.log(`Stickyboard backend running on http://localhost:${PORT}`);
 });
