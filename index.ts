@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
-import boardRoutes from "./routes/boardRoutes";
-import { startCronJob } from "./service/cronService";
+import boardRoutes from "./src/routes/boardRoutes";
+import { startCronJob } from "./src/service/cronService";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
