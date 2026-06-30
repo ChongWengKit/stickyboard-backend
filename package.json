@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node index.ts",
+    "dev": "tsx watch index.ts",
     "build": "prisma generate && prisma migrate deploy && tsc",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
@@ -21,6 +21,8 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "express-rate-limiter": "^1.3.1",
     "node-cron": "^4.5.0",
     "prisma": "^6.19.3",
     "puppeteer": "^25.2.1",
@@ -33,6 +35,7 @@
     "@types/node-cron": "^3.0.11",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   }
 }

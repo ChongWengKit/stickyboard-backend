@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import boardRoutes from "./src/routes/boardRoutes.js";
+import rateLimit from "express-rate-limit";
 const allowedOrigins = [
   process.env.FRONTEND_URL,
 ];
@@ -21,9 +22,18 @@ app.use(cors({
   credentials: true
 }));
 app.options('*splat', cors());
+const limiter = rateLimit({
+    windowMs: 1 * 60 * 1000, 
+    max: 100, 
+    message: 'Too many requests.',
+    standardHeaders: true, 
+    legacyHeaders: false,
+});
+app.use(limiter);
 app.use(express.json());
 app.use("/api", boardRoutes);
 
 
 app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`); 
 });
