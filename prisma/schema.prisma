@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Board {
+  id         Int    @id @default(autoincrement())
+  background String @default("")
+  notes      Note[]
+}
+
+model Note {
+  id          Int    @id @default(autoincrement())
+  description String
+  color       String
+  x           Int
+  y           Int
+  ipAddress   String
+  boardId     Int
+  board       Board  @relation(fields: [boardId], references: [id])
+}
