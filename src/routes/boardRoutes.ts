@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { boardController } from "../controller/boardController";
-import { cronController } from "../controller/cronController";
+import { boardController } from "../controller/boardController.js";
+import { cronController } from "../controller/cronController.js";
 
 const router = Router();
 

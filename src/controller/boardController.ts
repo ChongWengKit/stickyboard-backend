@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { boardService } from "../service/boardService";
-import { triggerNoteAdded } from "../service/pusherService";
+import { boardService } from "../service/boardService.js";
+import { triggerNoteAdded } from "../service/pusherService.js";
 
 function getClientIp(req: Request): string {
   const forwarded = req.headers["x-forwarded-for"];

@@ -1,4 +1,4 @@
-import { boardRepository } from "../respository/boardRepository";
+import { boardRepository } from "../respository/boardRepository.js";
 
 const MAX_NOTES_PER_IP = parseInt(process.env.MAX_NOTES_PER_IP || "5", 10);
 

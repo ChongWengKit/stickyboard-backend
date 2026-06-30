@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import puppeteer from "puppeteer";
 import { v2 as cloudinary } from "cloudinary";
-import { boardService } from "../service/boardService";
+import { boardService } from "../service/boardService.js";
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 

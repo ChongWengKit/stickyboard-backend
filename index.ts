@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import boardRoutes from "./src/routes/boardRoutes";
+import boardRoutes from "./src/routes/boardRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
