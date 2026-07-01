@@ -28,7 +28,7 @@ async function takeScreenshot(): Promise<string> {
   try {
     if (hasBackground) {
       const page = await browser.newPage();
-      await page.setViewport({ width: 3000, height: 2000, deviceScaleFactor: 3 });
+      await page.setViewport({ width: 3000, height: 2000});
       await page.goto(`${FRONTEND_URL}/snapshot`, { waitUntil: "networkidle0", timeout: 30000 });
       try {
         await page.waitForSelector(".sticky-note", { timeout: 10000 });
@@ -61,7 +61,7 @@ async function takeScreenshot(): Promise<string> {
       return composited.toString("base64");
     } else {
       const page = await browser.newPage();
-      await page.setViewport({ width: 3000, height: 2000, deviceScaleFactor: 3 });
+      await page.setViewport({ width: 3000, height: 2000 });
       await page.goto(FRONTEND_URL, { waitUntil: "networkidle0", timeout: 30000 });
       await page.waitForSelector(".sticky-note", { timeout: 15000 });
       const screenshotBuffer = await page.screenshot({ type: "png" });
