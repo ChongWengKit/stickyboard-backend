@@ -20,7 +20,8 @@ async function takeScreenshot(): Promise<string> {
   const browser = await puppeteer.launch({
     args: Chromium.args,
     defaultViewport: { width: 3000, height: 2000 },
-    executablePath: await Chromium.executablePath(),
+    executablePath: await Chromium.executablePath('https://github.com/Sparticuz/chromium/releases/download/v121.0.0/chromium-v121.0.0-pack.tar'
+    ),
     headless: true,
   });
 
