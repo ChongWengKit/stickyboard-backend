@@ -26,7 +26,8 @@
     "node-cron": "^4.5.0",
     "prisma": "^6.19.3",
     "puppeteer": "^25.2.1",
-    "pusher": "^5.3.4"
+    "pusher": "^5.3.4",
+    "sharp": "^0.35.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

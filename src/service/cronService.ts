@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import puppeteer from "puppeteer";
+import sharp from "sharp";
 import { v2 as cloudinary } from "cloudinary";
 import { boardService } from "../service/boardService.js";
 
@@ -12,18 +13,61 @@ cloudinary.config({
 });
 
 async function takeScreenshot(): Promise<string> {
+  const board = await boardService.getBoard();
+  const hasBackground = !!board.background;
+
   const browser = await puppeteer.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
-  try {
-    const page = await browser.newPage();
-    await page.setViewport({ width: 3000, height: 2000, deviceScaleFactor: 3});
-    await page.goto(FRONTEND_URL, { waitUntil: "networkidle0", timeout: 30000 });
 
-    await page.waitForSelector(".sticky-note", { timeout: 15000 });
-    const screenshotBuffer: any = await page.screenshot({ type: "png"});
-    return Buffer.from(screenshotBuffer).toString("base64");
+  try {
+    if (hasBackground) {
+      const page = await browser.newPage();
+      await page.setViewport({ width: 3000, height: 2000, deviceScaleFactor: 3 });
+      await page.goto(`${FRONTEND_URL}/snapshot`, { waitUntil: "networkidle0", timeout: 30000 });
+      try {
+        await page.waitForSelector(".sticky-note", { timeout: 10000 });
+      } catch {
+      }
+      const notesRaw = await page.screenshot({
+        type: "png",
+        omitBackground: true,
+      });
+      const notesBuffer = Buffer.from(notesRaw);
+
+      // Get notes screenshot dimensions
+      const notesMeta = await sharp(notesBuffer).metadata();
+      const targetWidth = notesMeta.width!;
+      const targetHeight = notesMeta.height!;
+
+      // Fetch the existing background image
+      const bgResponse = await fetch(board.background);
+      const bgArrayBuffer = await bgResponse.arrayBuffer();
+      const bgBuffer = Buffer.from(bgArrayBuffer);
+
+      // Resize background to match notes screenshot dimensions, then composite
+      const composited = await sharp(bgBuffer)
+        .resize(targetWidth, targetHeight, { fit: "fill" })
+        .composite([
+          {
+            input: notesBuffer,
+            top: 0,
+            left: 0,
+          },
+        ])
+        .png()
+        .toBuffer();
+
+      return composited.toString("base64");
+    } else {
+      const page = await browser.newPage();
+      await page.setViewport({ width: 3000, height: 2000, deviceScaleFactor: 3 });
+      await page.goto(FRONTEND_URL, { waitUntil: "networkidle0", timeout: 30000 });
+      await page.waitForSelector(".sticky-note", { timeout: 15000 });
+      const screenshotBuffer = await page.screenshot({ type: "png" });
+      return Buffer.from(screenshotBuffer).toString("base64");
+    }
   } finally {
     await browser.close();
   }
@@ -36,7 +80,7 @@ async function uploadToCloudinary(base64Image: string): Promise<string> {
       folder: "stickyboard-background",
       public_id: `snapshot-${Date.now()}`,
       overwrite: true,
-      quality: "auto"
+      quality: "auto",
     }
   );
   return result.secure_url;
@@ -44,7 +88,11 @@ async function uploadToCloudinary(base64Image: string): Promise<string> {
 
 export async function runSnapshotAndCleanup() {
   try {
-    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    if (
+      !process.env.CLOUDINARY_CLOUD_NAME ||
+      !process.env.CLOUDINARY_API_KEY ||
+      !process.env.CLOUDINARY_API_SECRET
+    ) {
       return;
     }
     const noteIdsBefore = await boardService.getNoteIds();
@@ -54,7 +102,6 @@ export async function runSnapshotAndCleanup() {
     if (noteIdsBefore.length > 0) {
       await boardService.deleteNotesByIds(noteIdsBefore);
     }
-
   } catch (error) {
     console.error("[CronService] Snapshot and cleanup failed:", error);
   }
