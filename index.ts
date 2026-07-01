@@ -12,7 +12,7 @@ app.use(cors({
 
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-  
+
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -22,12 +22,16 @@ app.use(cors({
   credentials: true
 }));
 app.options('*splat', cors());
+app.set('trust proxy', 1)
+
 const limiter = rateLimit({
-    windowMs: 1 * 60 * 1000, 
-    max: 100, 
-    message: 'Too many requests.',
-    standardHeaders: true, 
-    legacyHeaders: false,
+  windowMs: 1 * 60 * 1000,
+  max: 100,
+  message: 'Too many requests.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false }
+
 });
 app.use(limiter);
 app.use(express.json());
@@ -35,5 +39,5 @@ app.use("/api", boardRoutes);
 
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`); 
+  console.log(`Server is running on port ${PORT}`);
 });
