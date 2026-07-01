@@ -1,5 +1,6 @@
 import cron from "node-cron";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+import Chromium from "@sparticuz/chromium-min";
 import sharp from "sharp";
 import { v2 as cloudinary } from "cloudinary";
 import { boardService } from "../service/boardService.js";
@@ -17,8 +18,10 @@ async function takeScreenshot(): Promise<string> {
   const hasBackground = !!board.background;
 
   const browser = await puppeteer.launch({
+    args: Chromium.args,
+    defaultViewport: { width: 3000, height: 2000 },
+    executablePath: await Chromium.executablePath(),
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
   try {
@@ -36,17 +39,12 @@ async function takeScreenshot(): Promise<string> {
       });
       const notesBuffer = Buffer.from(notesRaw);
 
-      // Get notes screenshot dimensions
       const notesMeta = await sharp(notesBuffer).metadata();
       const targetWidth = notesMeta.width!;
       const targetHeight = notesMeta.height!;
-
-      // Fetch the existing background image
       const bgResponse = await fetch(board.background);
       const bgArrayBuffer = await bgResponse.arrayBuffer();
       const bgBuffer = Buffer.from(bgArrayBuffer);
-
-      // Resize background to match notes screenshot dimensions, then composite
       const composited = await sharp(bgBuffer)
         .resize(targetWidth, targetHeight, { fit: "fill" })
         .composite([
