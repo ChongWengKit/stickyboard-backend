@@ -22,4 +22,5 @@ model Note {
   ipAddress   String
   boardId     Int
   board       Board  @relation(fields: [boardId], references: [id])
+  @@index([ipAddress])
 }
