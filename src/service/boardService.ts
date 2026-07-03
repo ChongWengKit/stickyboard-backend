@@ -55,5 +55,9 @@ export const boardService = {
 
   async updateBoardBackground(url: string) {
     return await boardRepository.updateBoardBackground(url);
+  },
+
+  async updateBoardBackgroundAndDeleteNotes(url: string, noteIds: number[]) {
+    return await boardRepository.updateBoardBackgroundAndDeleteNotes(url, noteIds);
   }
 };

@@ -4,16 +4,12 @@ const prisma = new PrismaClient();
 
 export const boardRepository = {
   async getBoard() {
-    const board = await prisma.board.findFirst({
+    return await prisma.board.upsert({
+      where: { id: 1 },
+      create: { id: 1, background: "" },
+      update: {},
       include: { notes: true },
     });
-    if (!board) {
-      return await prisma.board.create({
-        data: { background: "" },
-        include: { notes: true },
-      });
-    }
-    return board;
   },
 
   async getNoteIds(): Promise<number[]> {
@@ -34,9 +30,6 @@ export const boardRepository = {
     color: string;
     ipAddress: string;
   }) {
-    const board = await prisma.board.findFirst();
-    if (!board) throw new Error("No board found");
-
     return await prisma.note.create({
       data: {
         x: data.x,
@@ -44,7 +37,7 @@ export const boardRepository = {
         description: data.description,
         color: data.color,
         ipAddress: data.ipAddress,
-        boardId: board.id,
+        boardId: 1,
       },
     });
   },
@@ -66,11 +59,23 @@ export const boardRepository = {
   },
 
   async updateBoardBackground(url: string) {
-    const board = await prisma.board.findFirst();
-    if (!board) throw new Error("No board found");
     return await prisma.board.update({
-      where: { id: board.id },
+      where: { id: 1 },
       data: { background: url },
+    });
+  },
+
+  async updateBoardBackgroundAndDeleteNotes(url: string, noteIds: number[]) {
+    return await prisma.$transaction(async (tx) => {
+      await tx.board.update({
+        where: { id: 1 },
+        data: { background: url },
+      });
+      if (noteIds.length > 0) {
+        await tx.note.deleteMany({
+          where: { id: { in: noteIds } },
+        });
+      }
     });
   },
 };

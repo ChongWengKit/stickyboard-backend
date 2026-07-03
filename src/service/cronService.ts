@@ -97,10 +97,7 @@ export async function runSnapshotAndCleanup() {
     const noteIdsBefore = await boardService.getNoteIds();
     const base64Image = await takeScreenshot();
     const imageUrl = await uploadToCloudinary(base64Image);
-    await boardService.updateBoardBackground(imageUrl);
-    if (noteIdsBefore.length > 0) {
-      await boardService.deleteNotesByIds(noteIdsBefore);
-    }
+    await boardService.updateBoardBackgroundAndDeleteNotes(imageUrl, noteIdsBefore);
   } catch (error) {
     console.error("[CronService] Snapshot and cleanup failed:", error);
   }
