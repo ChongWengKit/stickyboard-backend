@@ -51,12 +51,12 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
         env:
-          DATABASE_URL: postgresql://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@localhost:5432/${{ secrets.STAGING_DB_NAME }}
+          DATABASE_URL: postgresql://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ secrets.STAGING_DB_HOST }}:5432/${{ secrets.STAGING_DB_NAME }}
 
       - name: Run Prisma migrations
         run: npx prisma migrate deploy
         env:
-          DATABASE_URL: postgresql://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@localhost:5432/${{ secrets.STAGING_DB_NAME }}
+          DATABASE_URL: postgresql://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ secrets.STAGING_DB_HOST }}:5432/${{ secrets.STAGING_DB_NAME }}
 
       - name: Type check
         run: npx tsc --noEmit
