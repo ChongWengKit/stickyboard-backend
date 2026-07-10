@@ -11,11 +11,6 @@ jobs:
     name: Test & Build
     environment: dev
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: stickyboard-backend
-
     services:
       postgres:
         image: postgres:16
