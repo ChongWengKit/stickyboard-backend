@@ -3,12 +3,8 @@ name: Backend CI
 on:
   push:
     branches: [main, dev]
-    paths:
-      - "stickyboard-backend/**"
   pull_request:
     branches: [main]
-    paths:
-      - "stickyboard-backend/**"
 
 jobs:
   test-and-build:
