@@ -17,7 +17,7 @@ export const boardRepository = {
       include: { notes: true },
     });
     if (!board) {
-      const created =await prisma.board.upsert({
+      const created = await prisma.board.upsert({
       where: { id: 1 },
       create: { id: 1, background: "" },
       update: {},
