@@ -3,6 +3,7 @@ import { vi } from "vitest";
 export function createMockPrisma() {
   return {
     board: {
+      findFirst: vi.fn(),
       upsert: vi.fn(),
       update: vi.fn(),
     },
