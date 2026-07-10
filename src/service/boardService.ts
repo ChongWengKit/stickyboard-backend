@@ -1,4 +1,5 @@
 import { boardRepository } from "../respository/boardRepository.js";
+import type { Note } from "@prisma/client";
 
 const MAX_NOTES_PER_IP = parseInt(process.env.MAX_NOTES_PER_IP || "5", 10);
 
@@ -7,7 +8,7 @@ export const boardService = {
     const board = await boardRepository.getBoard();
     return {
       background: board.background,
-      notes: board.notes.map((n) => ({
+      notes: board.notes.map((n: Note) => ({
         id: String(n.id),
         x: n.x,
         y: n.y,
