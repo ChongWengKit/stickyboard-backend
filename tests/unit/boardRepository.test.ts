@@ -14,6 +14,16 @@ vi.mock("@prisma/client", () => {
   };
 });
 
+const mockRedisInstance = {
+  get: vi.fn(),
+  setex: vi.fn(),
+  del: vi.fn(),
+};
+
+vi.mock("../../util/redis.js", () => ({
+  default: mockRedisInstance,  
+}));
+
 const { boardRepository } = await import("../../src/respository/boardRepository.js");
 
 describe("boardRepository", () => {
@@ -86,6 +96,7 @@ describe("boardRepository", () => {
     it("should create and return a note", async () => {
       const noteInput = { x: 100, y: 200, description: "Test note", color: "blue", ipAddress: "::1" };
       const expectedNote = { id: 1, ...noteInput, boardId: 1 };
+      mockPrisma.board.findFirst.mockResolvedValue({ id: 1, background: "" });
       mockPrisma.note.create.mockResolvedValue(expectedNote);
 
       const result = await boardRepository.addNote(noteInput);
@@ -100,38 +111,46 @@ describe("boardRepository", () => {
     it("should delete and return the note", async () => {
       const expectedNote = { id: 1, description: "test", color: "red", x: 50, y: 50, ipAddress: "::1", boardId: 1 };
       mockPrisma.note.delete.mockResolvedValue(expectedNote);
+      mockRedisInstance.del.mockResolvedValue(1);
 
       const result = await boardRepository.deleteNote(1);
       expect(result).toEqual(expectedNote);
       expect(mockPrisma.note.delete).toHaveBeenCalledWith({ where: { id: 1 } });
+      expect(mockRedisInstance.del).toHaveBeenCalledWith("board:data");
     });
   });
 
   describe("deleteNotesByIds", () => {
     it("should delete notes by IDs and return the count", async () => {
       mockPrisma.note.deleteMany.mockResolvedValue({ count: 2 });
+      mockRedisInstance.del.mockResolvedValue(1);
 
       const result = await boardRepository.deleteNotesByIds([1, 2]);
       expect(result).toEqual({ count: 2 });
       expect(mockPrisma.note.deleteMany).toHaveBeenCalledWith({
         where: { id: { in: [1, 2] } },
       });
+      expect(mockRedisInstance.del).toHaveBeenCalledWith("board:data");
     });
   });
 
   describe("deleteAllNotes", () => {
     it("should delete all notes", async () => {
       mockPrisma.note.deleteMany.mockResolvedValue({ count: 5 });
+      mockRedisInstance.del.mockResolvedValue(1);
 
       const result = await boardRepository.deleteAllNotes();
       expect(result).toEqual({ count: 5 });
       expect(mockPrisma.note.deleteMany).toHaveBeenCalledWith();
+      expect(mockRedisInstance.del).toHaveBeenCalledWith("board:data");
     });
   });
 
   describe("updateBoardBackground", () => {
     it("should update the board background URL", async () => {
+      mockPrisma.board.findFirst.mockResolvedValue({ id: 1, background: "" });
       mockPrisma.board.update.mockResolvedValue({ id: 1, background: "https://example.com/bg.png" });
+      mockRedisInstance.del.mockResolvedValue(1);
 
       const result = await boardRepository.updateBoardBackground("https://example.com/bg.png");
       expect(result).toEqual({ id: 1, background: "https://example.com/bg.png" });
@@ -139,6 +158,7 @@ describe("boardRepository", () => {
         where: { id: 1 },
         data: { background: "https://example.com/bg.png" },
       });
+      expect(mockRedisInstance.del).toHaveBeenCalledWith("board:data");
     });
   });
 
