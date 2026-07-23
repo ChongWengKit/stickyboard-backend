@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: ${{ github.ref_name == 'main' && secrets.STAGING_DB_USER || 'testuser' }}
           POSTGRES_PASSWORD: ${{ github.ref_name == 'main' && secrets.STAGING_DB_PASSWORD || 'testpass' }}
