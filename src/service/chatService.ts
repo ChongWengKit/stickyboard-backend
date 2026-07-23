@@ -2,7 +2,7 @@ import Groq from "groq-sdk";
 import { embeddingService } from "./embeddingService.js";
 import { boardRepository } from "../respository/boardRepository.js";
 
-let groq: InstanceType<typeof Groq> | null = null;
+let groq: Groq | null = null;
 
 const MAX_HISTORY = 5;
 const QUERY_REWRITE_PROMPT = `You rewrite user questions into short, keyword-focused search queries for a sticky notes search system.
@@ -49,7 +49,7 @@ Be complete first, brief second — a longer correct answer is better than a sho
 
 const GENERATION_MODEL = "openai/gpt-oss-20b";
 
-function getClient(): InstanceType<typeof Groq> {
+function getClient(): Groq {
   if (!groq) {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
@@ -57,9 +57,9 @@ function getClient(): InstanceType<typeof Groq> {
         "GROQ_API_KEY is not configured in environment variables"
       );
     }
-    groq = new Groq({ apiKey });
+    groq = new (Groq as any)({ apiKey });
   }
-  return groq;
+  return groq!;
 }
 
 interface Message {
