@@ -15,6 +15,7 @@ export function createMockPrisma() {
       deleteMany: vi.fn(),
     },
     $transaction: vi.fn(),
+    $queryRawUnsafe: vi.fn(),
   };
 }
 

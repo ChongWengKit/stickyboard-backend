@@ -34,7 +34,18 @@ const limiter = rateLimit({
 
 });
 app.use(limiter);
+
 app.use(express.json());
+
+app.use("/api/chat", rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: "Too many chat requests. Please slow down.", data: null },
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
+}));
+
 app.use("/api", boardRoutes);
 
 

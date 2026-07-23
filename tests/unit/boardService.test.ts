@@ -1,11 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+vi.mock("../../src/service/embeddingService.js", () => ({
+  embeddingService: {
+    generateEmbedding: vi.fn(),
+  },
+}));
+
+vi.mock("../../util/chunking.js", () => ({
+  chunkText: vi.fn(),
+}));
+
 vi.mock("../../src/respository/boardRepository.js", () => ({
   boardRepository: {
     getBoard: vi.fn(),
     getNoteIds: vi.fn(),
     countNotesByIp: vi.fn(),
     addNote: vi.fn(),
+    insertChunks: vi.fn(),
+    deleteChunksByNoteIds: vi.fn(),
+    deleteChunksByNoteId: vi.fn(),
+    deleteAllChunks: vi.fn(),
     deleteNotesByIds: vi.fn(),
     deleteAllNotes: vi.fn(),
     updateBoardBackground: vi.fn(),
@@ -14,6 +28,8 @@ vi.mock("../../src/respository/boardRepository.js", () => ({
 }));
 
 const { boardRepository } = await import("../../src/respository/boardRepository.js");
+const { embeddingService } = await import("../../src/service/embeddingService.js");
+const { chunkText } = await import("../../util/chunking.js");
 const { boardService } = await import("../../src/service/boardService.js");
 
 describe("boardService", () => {
@@ -65,6 +81,9 @@ describe("boardService", () => {
       vi.mocked(boardRepository.countNotesByIp).mockResolvedValue(2);
       const createdNote = { id: 5, x: 100, y: 200, description: "New note", color: "green", ipAddress: "::1", boardId: 1 };
       vi.mocked(boardRepository.addNote).mockResolvedValue(createdNote);
+      vi.mocked(chunkText).mockReturnValue([]);
+      vi.mocked(embeddingService.generateEmbedding).mockResolvedValue([]);
+      vi.mocked(boardRepository.insertChunks).mockResolvedValue(undefined as any);
 
       const result = await boardService.addNote({
         x: 100, y: 200, description: "New note", color: "green", ipAddress: "::1",

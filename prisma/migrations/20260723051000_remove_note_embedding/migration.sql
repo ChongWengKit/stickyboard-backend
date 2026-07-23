@@ -1,0 +1,1 @@
+ALTER TABLE "Note" DROP COLUMN IF EXISTS embedding;
