@@ -24,11 +24,19 @@ vi.mock("../../util/redis.js", () => ({
   default: mockRedisInstance,  
 }));
 
-const { boardRepository } = await import("../../src/respository/boardRepository.js");
+const { boardRepository, prepareQueryForSearchSimilarNotes } = await import("../../src/respository/boardRepository.js");
 
 describe("boardRepository", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe("prepareQueryForSearchSimilarNotes", () => {
+    it("should strip stop words and punctuation before search", () => {
+      const result = prepareQueryForSearchSimilarNotes("What are the best notes about the project?");
+
+      expect(result).toBe("best notes about project");
+    });
   });
 
   describe("getBoard", () => {
@@ -95,15 +103,14 @@ describe("boardRepository", () => {
   describe("addNote", () => {
     it("should create and return a note", async () => {
       const noteInput = { x: 100, y: 200, description: "Test note", color: "blue", ipAddress: "::1" };
-      const expectedNote = { id: 1, ...noteInput, boardId: 1 };
+      const expectedNote = { id: 1, description: "Test note", color: "blue", x: 100, y: 200, ipAddress: "::1", boardId: 1 };
       mockPrisma.board.findFirst.mockResolvedValue({ id: 1, background: "" });
-      mockPrisma.note.create.mockResolvedValue(expectedNote);
+      mockPrisma.$queryRawUnsafe.mockResolvedValue([expectedNote]);
 
       const result = await boardRepository.addNote(noteInput);
       expect(result).toEqual(expectedNote);
-      expect(mockPrisma.note.create).toHaveBeenCalledWith({
-        data: { ...noteInput, boardId: 1 },
-      });
+      expect(mockPrisma.$queryRawUnsafe).toHaveBeenCalled();
+      expect(mockRedisInstance.del).toHaveBeenCalledWith("board:data");
     });
   });
 

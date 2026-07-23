@@ -1,4 +1,6 @@
 import { boardRepository } from "../respository/boardRepository.js";
+import { embeddingService } from "./embeddingService.js";
+import { chunkText } from "../../util/chunking.js";
 import type { Note } from "@prisma/client";
 
 const MAX_NOTES_PER_IP = parseInt(process.env.MAX_NOTES_PER_IP || "5", 10);
@@ -36,7 +38,21 @@ export const boardService = {
       );
     }
 
+    const cleanText = data.description.replace(/\n/g, " ");
     const note = await boardRepository.addNote(data);
+
+    const chunks = chunkText(cleanText);
+    const chunkEmbeddings = await Promise.all(
+      chunks.map((chunk) => embeddingService.generateEmbedding(chunk))
+    );
+    await boardRepository.insertChunks(
+      chunks.map((content, i) => ({
+        noteId: note.id,
+        content,
+        embedding: chunkEmbeddings[i],
+      }))
+    );
+
     return {
       id: String(note.id),
       x: note.x,
@@ -47,10 +63,12 @@ export const boardService = {
   },
 
   async deleteNotesByIds(ids: number[]) {
+    await boardRepository.deleteChunksByNoteIds(ids);
     return await boardRepository.deleteNotesByIds(ids);
   },
 
   async deleteAllNotes() {
+    await boardRepository.deleteAllChunks();
     return await boardRepository.deleteAllNotes();
   },
 

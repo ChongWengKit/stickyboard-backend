@@ -43,7 +43,7 @@ export const boardController = {
         res.status(429).json({ success: false, message: error.message, data: null });
         return;
       }
-      res.status(500).json({ sucess: false, message: "Failed to add note", data: null });
+      res.status(500).json({ success: false, message: "Failed to add note", data: null });
     }
   },
 

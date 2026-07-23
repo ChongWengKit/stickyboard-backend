@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS "NoteChunk" (
+    id SERIAL PRIMARY KEY,
+    "noteId" INTEGER NOT NULL REFERENCES "Note"(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    embedding vector(3072) NOT NULL
+);
