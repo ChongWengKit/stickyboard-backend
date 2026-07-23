@@ -154,7 +154,7 @@ describe("boardController", () => {
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
-        sucess: false,
+        success: false,
         message: "Failed to add note",
         data: null,
       });
