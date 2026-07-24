@@ -120,7 +120,20 @@ export const chatService = {
 };
 
 async function rewriteQuery(question: string, history: Message[]): Promise<string> {
-  if (history.length === 0) return question;
+  if (history.length === 0) {
+    const client = getClient();
+    const response = await client.chat.completions.create({
+      model: GENERATION_MODEL,
+      messages: [
+        { role: "system", content: QUERY_REWRITE_PROMPT },
+        { role: "user", content: `History: (none)\n\nFollow-up: ${question}` },
+      ],
+      temperature: 0,
+    });
+
+    const rewritten = response.choices?.[0]?.message?.content?.trim();
+    return rewritten && rewritten.length > 0 ? rewritten : question;
+  }
 
   const recentHistory = history.slice(-4); 
   const historyText = recentHistory
