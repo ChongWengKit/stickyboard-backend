@@ -10,29 +10,27 @@ const QUERY_REWRITE_PROMPT = `You rewrite user questions into short, keyword-foc
 RULES:
 1. Only use conversation history if the current question clearly depends on it — e.g. it uses a pronoun or reference like "that one", "the food one", "what about X", "and the second one", or is otherwise incomplete without prior context.
 2. If the question is understandable on its own, do NOT use the history at all. Return it unchanged (or lightly cleaned — see rule 3), even if the topic is similar to previous messages.
-3. Keep the output SHORT and keyword-like — strip greetings, filler phrases ("are there any", "I was wondering if", "can you tell me"), and politeness words. Preserve the core nouns/topics only.
-4. Never add words, context, or assumptions that aren't clearly implied by the history or the question itself. Do not paraphrase into a longer or more formal sentence than necessary.
-5. Do not change singular/plural or word forms unnecessarily (e.g. don't turn "task" into "tasks").
+3. Keep the output SHORT and keyword-like — strip greetings, filler phrases ("are there any", "I was wondering if", "can you tell me", "what can i"), and politeness words. Preserve the core nouns/topics only.
+4. Translate conversational intent or implied needs into searchable keywords (e.g., convert "what can i buy" or "what do I need to get" into items like "groceries shopping buy list").
+5. Never add words, context, or assumptions that aren't clearly implied by the history or the question itself. Do not paraphrase into a longer or more formal sentence than necessary.
+6. Do not change singular/plural or word forms unnecessarily.
 
 Return ONLY the rewritten query, nothing else — no explanation, no punctuation like quotes around it.
 
 Examples:
 History: (none)
-Follow-up: "are there any task"
-Output: task
+Follow-up: "what can i buy"
+Output: buy shopping groceries
+
+History: (none)
+Follow-up: "what do I need to get"
+Output: get buy list
 
 History:
 User: what tasks do I have
 Assistant: You have a grocery task and a travel task.
 Follow-up: "the food one"
-Output: food task
-
-History:
-User: what tasks do I have
-Assistant: You have a grocery task and a travel task.
-Follow-up: "any tasks about eating?"
-Output: tasks eating
-(Note: this question is standalone — it doesn't reference "the previous one" — so history is irrelevant here even though the topic overlaps.)`;
+Output: food task`;
 
 const SYSTEM_PROMPT = `You are an assistant for a sticky notes board. Answer ONLY using the notes given to you below. Do not use outside knowledge.
 
@@ -43,9 +41,10 @@ HOW TO ANSWER:
 4. If nothing in the notes answers the question, say so plainly. Do not guess or add details that aren't written in the notes.
 5. Describe notes naturally and neutrally — say "one note says...", "a note on the board mentions...", or "the notes show...". Do NOT say "your notes" or "your task" — you don't know who wrote each note, and the board may be shared by multiple people.
 6. Do not mention note IDs, scores, "context", "JSON", or how you work.
-7. If the question is not about the sticky notes board, reply exactly: "I can only answer questions about the sticky notes board."
-
+7. If the question is about your capabilities (e.g. "what can you do?", "what can the bot do?", "what are you?"), explain that you can answer questions about the sticky notes on the board — you can find, summarize, and list information from the notes. Do NOT refuse to answer.
+8. If the question is clearly not about the sticky notes board and not about your capabilities (e.g. general knowledge, current events, personal advice), reply exactly: "I can only answer questions about the sticky notes board."
 Be complete first, brief second — a longer correct answer is better than a short incomplete one.`;
+
 
 const GENERATION_MODEL = "openai/gpt-oss-20b";
 
@@ -78,7 +77,6 @@ export const chatService = {
     history: Message[] = []
   ): Promise<ChatResponse> {
     const searchQuery = await rewriteQuery(question, history);
-
     const embedding = await embeddingService.generateEmbedding(searchQuery);
 
     const similarNotes = await boardRepository.searchSimilarNotes(embedding, undefined, searchQuery);
@@ -140,5 +138,6 @@ async function rewriteQuery(question: string, history: Message[]): Promise<strin
   });
 
   const rewritten = response.choices?.[0]?.message?.content?.trim();
+
   return rewritten && rewritten.length > 0 ? rewritten : question;
 }
