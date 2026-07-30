@@ -1,6 +1,6 @@
 import { Groq } from "groq-sdk";
-import { embeddingService } from "./embeddingService.js";
-import { boardRepository } from "../respository/boardRepository.js";
+import { embeddingService } from "./embedding.service.js";
+import { boardRepository } from "../respository/board.repository.js";
 
 let groq: any = null;
 

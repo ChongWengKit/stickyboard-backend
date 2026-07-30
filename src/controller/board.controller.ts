@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { boardService } from "../service/boardService.js";
-import { triggerNoteAdded } from "../service/pusherService.js";
+import { boardService } from "../service/board.service.js";
+import { triggerNoteAdded } from "../service/pusher.service.js";
 import { getClientIp } from "../../util/ipUtils.js";
 export const boardController = {
   async getBoard(req: Request, res: Response) {

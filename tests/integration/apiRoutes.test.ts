@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";
 
-vi.mock("../../src/service/boardService.js", () => ({
+vi.mock("../../src/service/board.service.js", () => ({
   boardService: {
     getBoard: vi.fn(),
     addNote: vi.fn(),
@@ -10,11 +10,11 @@ vi.mock("../../src/service/boardService.js", () => ({
   },
 }));
 
-vi.mock("../../src/service/pusherService.js", () => ({
+vi.mock("../../src/service/pusher.service.js", () => ({
   triggerNoteAdded: vi.fn(),
 }));
 
-vi.mock("../../src/service/cronService.js", () => ({
+vi.mock("../../src/service/cron.service.js", () => ({
   runSnapshotAndCleanup: vi.fn(),
 }));
 
@@ -22,11 +22,11 @@ vi.mock("../../util/ipUtils.js", () => ({
   getClientIp: vi.fn(),
 }));
 
-const { boardService } = await import("../../src/service/boardService.js");
-const { triggerNoteAdded } = await import("../../src/service/pusherService.js");
-const { runSnapshotAndCleanup } = await import("../../src/service/cronService.js");
+const { boardService } = await import("../../src/service/board.service.js");
+const { triggerNoteAdded } = await import("../../src/service/pusher.service.js");
+const { runSnapshotAndCleanup } = await import("../../src/service/cron.service.js");
 const { getClientIp } = await import("../../util/ipUtils.js");
-const { default: boardRoutes } = await import("../../src/routes/boardRoutes.js");
+const { default: boardRoutes } = await import("../../src/routes/board.routes.js");
 
 function createTestApp() {
   const app = express();

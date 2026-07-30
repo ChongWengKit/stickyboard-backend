@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Request, Response } from "express";
 
-vi.mock("../../src/service/boardService.js", () => ({
+vi.mock("../../src/service/board.service.js", () => ({
   boardService: {
     getBoard: vi.fn(),
     addNote: vi.fn(),
@@ -9,7 +9,7 @@ vi.mock("../../src/service/boardService.js", () => ({
   },
 }));
 
-vi.mock("../../src/service/pusherService.js", () => ({
+vi.mock("../../src/service/pusher.service.js", () => ({
   triggerNoteAdded: vi.fn(),
 }));
 
@@ -17,9 +17,9 @@ vi.mock("../../util/ipUtils.js", () => ({
   getClientIp: vi.fn(),
 }));
 
-const { boardController } = await import("../../src/controller/boardController.js");
-const { boardService } = await import("../../src/service/boardService.js");
-const { triggerNoteAdded } = await import("../../src/service/pusherService.js");
+const { boardController } = await import("../../src/controller/board.controller.js");
+const { boardService } = await import("../../src/service/board.service.js");
+const { triggerNoteAdded } = await import("../../src/service/pusher.service.js");
 const { getClientIp } = await import("../../util/ipUtils.js");
 
 function mockReq(overrides: Partial<Request> = {}): Request {

@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { boardController } from "../controller/boardController.js";
-import { cronController } from "../controller/cronController.js";
-import { chatController } from "../controller/chatController.js";
+import { boardController } from "../controller/board.controller.js";
+import { cronController } from "../controller/cron.controller.js";
+import { chatController } from "../controller/chat.controller.js";
 const router = Router();
 
 router.get("/board", boardController.getBoard);

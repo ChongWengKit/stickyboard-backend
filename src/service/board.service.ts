@@ -1,5 +1,5 @@
-import { boardRepository } from "../respository/boardRepository.js";
-import { embeddingService } from "./embeddingService.js";
+import { boardRepository } from "../respository/board.repository.js";
+import { embeddingService } from "./embedding.service.js";
 import { chunkText } from "../../util/chunking.js";
 import type { Note } from "@prisma/client";
 
