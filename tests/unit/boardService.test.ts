@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("../../src/service/embeddingService.js", () => ({
+vi.mock("../../src/service/embedding.service.js", () => ({
   embeddingService: {
     generateEmbedding: vi.fn(),
   },
@@ -10,7 +10,7 @@ vi.mock("../../util/chunking.js", () => ({
   chunkText: vi.fn(),
 }));
 
-vi.mock("../../src/respository/boardRepository.js", () => ({
+vi.mock("../../src/respository/board.repository.js", () => ({
   boardRepository: {
     getBoard: vi.fn(),
     getNoteIds: vi.fn(),

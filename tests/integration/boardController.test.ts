@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Request, Response } from "express";
 
-vi.mock("../../src/service/boardService.js", () => ({
+vi.mock("../../src/service/board.service.js", () => ({
   boardService: {
     getBoard: vi.fn(),
     addNote: vi.fn(),
@@ -9,7 +9,7 @@ vi.mock("../../src/service/boardService.js", () => ({
   },
 }));
 
-vi.mock("../../src/service/pusherService.js", () => ({
+vi.mock("../../src/service/pusher.service.js", () => ({
   triggerNoteAdded: vi.fn(),
 }));
 

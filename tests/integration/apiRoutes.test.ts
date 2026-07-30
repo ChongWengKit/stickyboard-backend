@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import express from "express";
 import request from "supertest";
 
-vi.mock("../../src/service/boardService.js", () => ({
+vi.mock("../../src/service/board.service.js", () => ({
   boardService: {
     getBoard: vi.fn(),
     addNote: vi.fn(),
@@ -10,11 +10,11 @@ vi.mock("../../src/service/boardService.js", () => ({
   },
 }));
 
-vi.mock("../../src/service/pusherService.js", () => ({
+vi.mock("../../src/service/pusher.service.js", () => ({
   triggerNoteAdded: vi.fn(),
 }));
 
-vi.mock("../../src/service/cronService.js", () => ({
+vi.mock("../../src/service/cron.service.js", () => ({
   runSnapshotAndCleanup: vi.fn(),
 }));
 
