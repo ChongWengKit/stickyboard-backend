@@ -22,11 +22,11 @@ vi.mock("../../util/ipUtils.js", () => ({
   getClientIp: vi.fn(),
 }));
 
-const { boardService } = await import("../../src/service/boardService.js");
-const { triggerNoteAdded } = await import("../../src/service/pusherService.js");
-const { runSnapshotAndCleanup } = await import("../../src/service/cronService.js");
+const { boardService } = await import("../../src/service/board.service.js");
+const { triggerNoteAdded } = await import("../../src/service/pusher.service.js");
+const { runSnapshotAndCleanup } = await import("../../src/service/cron.service.js");
 const { getClientIp } = await import("../../util/ipUtils.js");
-const { default: boardRoutes } = await import("../../src/routes/boardRoutes.js");
+const { default: boardRoutes } = await import("../../src/routes/board.routes.js");
 
 function createTestApp() {
   const app = express();

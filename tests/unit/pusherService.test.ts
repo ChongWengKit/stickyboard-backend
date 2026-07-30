@@ -10,7 +10,7 @@ vi.mock("pusher", () => {
   };
 });
 
-const { triggerNoteAdded } = await import("../../src/service/pusherService.js");
+const { triggerNoteAdded } = await import("../../src/service/pusher.service.js");
 
 describe("pusherService", () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { runSnapshotAndCleanup } from "../service/cronService.js";
+import { runSnapshotAndCleanup } from "../service/cron.service.js";
 
 export const cronController = {
   async triggerSnapshot(req: Request, res: Response) {

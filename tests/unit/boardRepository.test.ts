@@ -24,7 +24,7 @@ vi.mock("../../util/redis.js", () => ({
   default: mockRedisInstance,  
 }));
 
-const { boardRepository, prepareQueryForSearchSimilarNotes } = await import("../../src/respository/boardRepository.js");
+const { boardRepository, prepareQueryForSearchSimilarNotes } = await import("../../src/respository/board.repository.js");
 
 describe("boardRepository", () => {
   beforeEach(() => {

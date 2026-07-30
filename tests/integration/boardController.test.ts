@@ -17,9 +17,9 @@ vi.mock("../../util/ipUtils.js", () => ({
   getClientIp: vi.fn(),
 }));
 
-const { boardController } = await import("../../src/controller/boardController.js");
-const { boardService } = await import("../../src/service/boardService.js");
-const { triggerNoteAdded } = await import("../../src/service/pusherService.js");
+const { boardController } = await import("../../src/controller/board.controller.js");
+const { boardService } = await import("../../src/service/board.service.js");
+const { triggerNoteAdded } = await import("../../src/service/pusher.service.js");
 const { getClientIp } = await import("../../util/ipUtils.js");
 
 function mockReq(overrides: Partial<Request> = {}): Request {

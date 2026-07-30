@@ -3,7 +3,7 @@ import puppeteer from "puppeteer-core";
 import Chromium from "@sparticuz/chromium-min";
 import sharp from "sharp";
 import { v2 as cloudinary } from "cloudinary";
-import { boardService } from "../service/boardService.js";
+import { boardService } from "../service/board.service.js";
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 

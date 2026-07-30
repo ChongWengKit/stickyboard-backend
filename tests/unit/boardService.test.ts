@@ -27,10 +27,10 @@ vi.mock("../../src/respository/boardRepository.js", () => ({
   },
 }));
 
-const { boardRepository } = await import("../../src/respository/boardRepository.js");
-const { embeddingService } = await import("../../src/service/embeddingService.js");
+const { boardRepository } = await import("../../src/respository/board.repository.js");
+const { embeddingService } = await import("../../src/service/embedding.service.js");
 const { chunkText } = await import("../../util/chunking.js");
-const { boardService } = await import("../../src/service/boardService.js");
+const { boardService } = await import("../../src/service/board.service.js");
 
 describe("boardService", () => {
   beforeEach(() => {
