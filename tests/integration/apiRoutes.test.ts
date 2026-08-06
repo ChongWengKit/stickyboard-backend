@@ -78,21 +78,21 @@ describe("API Routes (integration)", () => {
     it("should create a note and return 201", async () => {
       vi.mocked(getClientIp).mockReturnValue("192.168.1.1");
       vi.mocked(boardService.addNote).mockResolvedValue({
-        id: "1", x: 50, y: 80, description: "Integration test note", color: "blue",
+        id: "1", x: 50, y: 80, description: "Integration test note", color: "#0000ff",
       });
 
       const res = await request(createTestApp())
         .post("/api/board")
-        .send({ x: 50, y: 80, description: "Integration test note", color: "blue" });
+        .send({ x: 50, y: 80, description: "Integration test note", color: "#0000ff" });
 
       expect(res.status).toBe(201);
       expect(res.body).toEqual({
         success: true,
         message: "Note added successfully",
-        data: { id: "1", x: 50, y: 80, description: "Integration test note", color: "blue" },
+        data: { id: "1", x: 50, y: 80, description: "Integration test note", color: "#0000ff" },
       });
       expect(boardService.addNote).toHaveBeenCalledWith({
-        x: 50, y: 80, description: "Integration test note", color: "blue", ipAddress: "192.168.1.1",
+        x: 50, y: 80, description: "Integration test note", color: "#0000ff", ipAddress: "192.168.1.1",
       });
       expect(triggerNoteAdded).toHaveBeenCalled();
     });
@@ -111,6 +111,34 @@ describe("API Routes (integration)", () => {
       expect(boardService.addNote).not.toHaveBeenCalled();
     });
 
+    it("should return 400 when description is too long", async () => {
+      const res = await request(createTestApp())
+        .post("/api/board")
+        .send({ x: 10, y: 20, description: "a".repeat(501), color: "#ffffff" });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        success: false,
+        message: "Description must be a non-empty string no longer than 500 characters",
+        data: null,
+      });
+      expect(boardService.addNote).not.toHaveBeenCalled();
+    });
+
+    it("should return 400 when color is invalid", async () => {
+      const res = await request(createTestApp())
+        .post("/api/board")
+        .send({ x: 10, y: 20, description: "Valid note", color: "red" });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        success: false,
+        message: "Color must be a valid hex color (e.g. #ffffff or #fff)",
+        data: null,
+      });
+      expect(boardService.addNote).not.toHaveBeenCalled();
+    });
+
     it("should return 429 when IP limit is exceeded", async () => {
       vi.mocked(getClientIp).mockReturnValue("10.0.0.5");
       vi.mocked(boardService.addNote).mockRejectedValue(
@@ -119,7 +147,7 @@ describe("API Routes (integration)", () => {
 
       const res = await request(createTestApp())
         .post("/api/board")
-        .send({ x: 10, y: 20, description: "Over limit", color: "red" });
+        .send({ x: 10, y: 20, description: "Over limit", color: "#ff0000" });
 
       expect(res.status).toBe(429);
       expect(res.body).toEqual({

@@ -79,20 +79,20 @@ describe("boardService", () => {
   describe("addNote", () => {
     it("should add a note when IP limit is not reached", async () => {
       vi.mocked(boardRepository.countNotesByIp).mockResolvedValue(2);
-      const createdNote = { id: 5, x: 100, y: 200, description: "New note", color: "green", ipAddress: "::1", boardId: 1 };
+      const createdNote = { id: 5, x: 100, y: 200, description: "New note", color: "#00ff00", ipAddress: "::1", boardId: 1 };
       vi.mocked(boardRepository.addNote).mockResolvedValue(createdNote);
       vi.mocked(chunkText).mockReturnValue([]);
       vi.mocked(embeddingService.generateEmbedding).mockResolvedValue([]);
       vi.mocked(boardRepository.insertChunks).mockResolvedValue(undefined as any);
 
       const result = await boardService.addNote({
-        x: 100, y: 200, description: "New note", color: "green", ipAddress: "::1",
+        x: 100, y: 200, description: "New note", color: "#00ff00", ipAddress: "::1",
       });
 
-      expect(result).toEqual({ id: "5", x: 100, y: 200, description: "New note", color: "green" });
+      expect(result).toEqual({ id: "5", x: 100, y: 200, description: "New note", color: "#00ff00" });
       expect(boardRepository.countNotesByIp).toHaveBeenCalledWith("::1");
       expect(boardRepository.addNote).toHaveBeenCalledWith({
-        x: 100, y: 200, description: "New note", color: "green", ipAddress: "::1",
+        x: 100, y: 200, description: "New note", color: "#00ff00", ipAddress: "::1",
       });
     });
 
@@ -100,13 +100,11 @@ describe("boardService", () => {
       vi.mocked(boardRepository.countNotesByIp).mockResolvedValue(5);
 
       await expect(boardService.addNote({
-        x: 100, y: 200, description: "Too many", color: "red", ipAddress: "::1",
+        x: 100, y: 200, description: "Too many", color: "#ff0000", ipAddress: "::1",
       })).rejects.toThrow("IP limit reached: maximum 5 notes per IP address");
 
       expect(boardRepository.addNote).not.toHaveBeenCalled();
     });
-
-
   });
 
   describe("deleteNotesByIds", () => {

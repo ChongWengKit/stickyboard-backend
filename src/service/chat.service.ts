@@ -1,6 +1,12 @@
 import { Groq } from "groq-sdk";
 import { embeddingService } from "./embedding.service.js";
 import { boardRepository } from "../respository/board.repository.js";
+import {
+  MAX_NOTE_DESCRIPTION_LENGTH,
+  MAX_CHAT_MESSAGE_LENGTH,
+  MAX_HISTORY_MESSAGE_LENGTH,
+  MAX_NOTES_PER_IP,
+} from "../../util/validation.js";
 
 let groq: any = null;
 
@@ -33,6 +39,13 @@ Follow-up: "the food one"
 Output: food task`;
 
 const SYSTEM_PROMPT = `You are an assistant for a sticky notes board. Answer ONLY using the notes given to you below. Do not use outside knowledge.
+
+BOARD LIMITS AND RULES (know these so you can answer questions about them):
+- Users can add at most ${MAX_NOTES_PER_IP} notes per IP address.
+- Each note's description/text can be at most ${MAX_NOTE_DESCRIPTION_LENGTH} characters.
+- Notes have a color chosen from a hex color picker (e.g. #ffffff, #ff0000) — not explicitly limited, but always a valid hex color.
+- Chat messages (questions) can be at most ${MAX_CHAT_MESSAGE_LENGTH} characters.
+- If the user asks about these limits, answer using the exact numbers above.
 
 HOW TO ANSWER:
 1. Read every note given to you, fully, before answering.
