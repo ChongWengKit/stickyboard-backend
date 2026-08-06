@@ -2,6 +2,11 @@ import { Request, Response } from "express";
 import { boardService } from "../service/board.service.js";
 import { triggerNoteAdded } from "../service/pusher.service.js";
 import { getClientIp } from "../../util/ipUtils.js";
+import {
+  MAX_NOTE_DESCRIPTION_LENGTH,
+  isValidHexColor,
+  isValidNoteDescription,
+} from "../../util/validation.js";
 export const boardController = {
   async getBoard(req: Request, res: Response) {
     try {
@@ -19,6 +24,28 @@ export const boardController = {
         res
           .status(400)
           .json({ success: false, message: "Missing required fields: x, y, description, color", data: null });
+        return;
+      }
+
+      if (!isValidNoteDescription(description)) {
+        res
+          .status(400)
+          .json({
+            success: false,
+            message: `Description must be a non-empty string no longer than ${MAX_NOTE_DESCRIPTION_LENGTH} characters`,
+            data: null,
+          });
+        return;
+      }
+
+      if (!isValidHexColor(color)) {
+        res
+          .status(400)
+          .json({
+            success: false,
+            message: "Color must be a valid hex color (e.g. #ffffff or #fff)",
+            data: null,
+          });
         return;
       }
 

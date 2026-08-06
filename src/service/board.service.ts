@@ -1,9 +1,8 @@
 import { boardRepository } from "../respository/board.repository.js";
 import { embeddingService } from "./embedding.service.js";
 import { chunkText } from "../../util/chunking.js";
+import { MAX_NOTES_PER_IP } from "../../util/validation.js";
 import type { Note } from "@prisma/client";
-
-const MAX_NOTES_PER_IP = parseInt(process.env.MAX_NOTES_PER_IP || "5", 10);
 
 export const boardService = {
   async getBoard() {

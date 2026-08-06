@@ -88,8 +88,53 @@ describe("boardController", () => {
       expect(boardService.addNote).not.toHaveBeenCalled();
     });
 
-    it("should return 400 when IP address is unknown", async () => {
+    it("should return 400 when description is too long", async () => {
+      const req = mockReq({ body: { x: 100, y: 200, description: "a".repeat(501), color: "#ffffff" } });
+      const res = mockRes();
+
+      await boardController.addNote(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: "Description must be a non-empty string no longer than 500 characters",
+        data: null,
+      });
+      expect(boardService.addNote).not.toHaveBeenCalled();
+    });
+
+    it("should return 400 when description is empty", async () => {
+      const req = mockReq({ body: { x: 100, y: 200, description: "   ", color: "#ffffff" } });
+      const res = mockRes();
+
+      await boardController.addNote(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: "Description must be a non-empty string no longer than 500 characters",
+        data: null,
+      });
+      expect(boardService.addNote).not.toHaveBeenCalled();
+    });
+
+    it("should return 400 when color is not a valid hex color", async () => {
       const req = mockReq({ body: { x: 100, y: 200, description: "Test", color: "blue" } });
+      const res = mockRes();
+
+      await boardController.addNote(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: "Color must be a valid hex color (e.g. #ffffff or #fff)",
+        data: null,
+      });
+      expect(boardService.addNote).not.toHaveBeenCalled();
+    });
+
+    it("should return 400 when IP address is unknown", async () => {
+      const req = mockReq({ body: { x: 100, y: 200, description: "Test", color: "#0000ff" } });
       const res = mockRes();
       vi.mocked(getClientIp).mockReturnValue("unknown");
 
@@ -105,31 +150,31 @@ describe("boardController", () => {
     });
 
     it("should add a note and return 201 on success", async () => {
-      const req = mockReq({ body: { x: 100, y: 200, description: "New note", color: "green" } });
+      const req = mockReq({ body: { x: 100, y: 200, description: "New note", color: "#00ff00" } });
       const res = mockRes();
       vi.mocked(getClientIp).mockReturnValue("192.168.1.1");
       vi.mocked(boardService.addNote).mockResolvedValue({
-        id: "1", x: 100, y: 200, description: "New note", color: "green",
+        id: "1", x: 100, y: 200, description: "New note", color: "#00ff00",
       });
 
       await boardController.addNote(req, res);
 
       expect(boardService.addNote).toHaveBeenCalledWith({
-        x: 100, y: 200, description: "New note", color: "green", ipAddress: "192.168.1.1",
+        x: 100, y: 200, description: "New note", color: "#00ff00", ipAddress: "192.168.1.1",
       });
       expect(triggerNoteAdded).toHaveBeenCalledWith({
-        id: "1", x: 100, y: 200, description: "New note", color: "green",
+        id: "1", x: 100, y: 200, description: "New note", color: "#00ff00",
       });
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith({
         success: true,
         message: "Note added successfully",
-        data: { id: "1", x: 100, y: 200, description: "New note", color: "green" },
+        data: { id: "1", x: 100, y: 200, description: "New note", color: "#00ff00" },
       });
     });
 
     it("should return 429 when IP limit is reached", async () => {
-      const req = mockReq({ body: { x: 10, y: 20, description: "Too many", color: "red" } });
+      const req = mockReq({ body: { x: 10, y: 20, description: "Too many", color: "#ff0000" } });
       const res = mockRes();
       vi.mocked(getClientIp).mockReturnValue("10.0.0.1");
       vi.mocked(boardService.addNote).mockRejectedValue(new Error("IP limit reached: maximum 5 notes per IP address"));
@@ -145,7 +190,7 @@ describe("boardController", () => {
     });
 
     it("should return 500 on unexpected error", async () => {
-      const req = mockReq({ body: { x: 50, y: 60, description: "Error test", color: "purple" } });
+      const req = mockReq({ body: { x: 50, y: 60, description: "Error test", color: "#800080" } });
       const res = mockRes();
       vi.mocked(getClientIp).mockReturnValue("10.0.0.2");
       vi.mocked(boardService.addNote).mockRejectedValue(new Error("Unexpected DB error"));
