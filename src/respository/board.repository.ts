@@ -165,6 +165,13 @@ export const boardRepository = {
     return notes.map((n) => n.id);
   },
 
+  async getAllNotes(): Promise<{ id: number; description: string }[]> {
+    const notes = await prisma.note.findMany({
+      select: { id: true, description: true },
+    });
+    return notes.map((n) => ({ id: n.id, description: n.description }));
+  },
+
   async countNotesByIp(ipAddress: string): Promise<number> {
     return await prisma.note.count({
       where: { ipAddress },
