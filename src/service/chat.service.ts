@@ -4,39 +4,51 @@ import { boardRepository } from "../respository/board.repository.js";
 import {
   MAX_NOTE_DESCRIPTION_LENGTH,
   MAX_CHAT_MESSAGE_LENGTH,
+  MAX_HISTORY_MESSAGES,
   MAX_HISTORY_MESSAGE_LENGTH,
   MAX_NOTES_PER_IP,
 } from "../../util/validation.js";
 
 let groq: any = null;
 
-const MAX_HISTORY = 5;
-const QUERY_REWRITE_PROMPT = `You rewrite user questions into short, keyword-focused search queries for a sticky notes search system.
+const QUERY_REWRITE_PROMPT = `You rewrite user questions into a short, keyword-focused search query for a sticky notes search system, and classify the request intent.
+
+Return a JSON object with exactly two keys:
+- "query": the rewritten keyword search query
+- "type": either "broad" or "specific"
 
 RULES:
 1. Only use conversation history if the current question clearly depends on it — e.g. it uses a pronoun or reference like "that one", "the food one", "what about X", "and the second one", or is otherwise incomplete without prior context.
 2. If the question is understandable on its own, do NOT use the history at all. Return it unchanged (or lightly cleaned — see rule 3), even if the topic is similar to previous messages.
 3. Keep the output SHORT and keyword-like — strip greetings, filler phrases ("are there any", "I was wondering if", "can you tell me", "what can i"), and politeness words. Preserve the core nouns/topics only.
-4. Translate conversational intent or implied needs into searchable keywords (e.g., convert "what can i buy" or "what do I need to get" into items like "groceries shopping buy list").
+4. Translate conversational intent or implied needs into searchable keywords (e.g., convert "what can i buy" or "what do I need to get" into items like "buy shopping groceries").
 5. Never add words, context, or assumptions that aren't clearly implied by the history or the question itself. Do not paraphrase into a longer or more formal sentence than necessary.
 6. Do not change singular/plural or word forms unnecessarily.
 
-Return ONLY the rewritten query, nothing else — no explanation, no punctuation like quotes around it.
+Set "type":
+- "broad" ONLY if the user wants an overview or aggregate of the whole board / all notes — e.g. summaries, recaps, "what's on the board", "list all my notes", "give me an overview of everything".
+- "specific" for any other request about a particular topic, item, task, or detail.
+
+Return ONLY the JSON object, nothing else — no markdown fences, no explanation.
 
 Examples:
 History: (none)
 Follow-up: "what can i buy"
-Output: buy shopping groceries
+Output: {"query": "buy shopping groceries", "type": "specific"}
 
 History: (none)
-Follow-up: "what do I need to get"
-Output: get buy list
+Follow-up: "give me the summary of all the notes board"
+Output: {"query": "summary board", "type": "broad"}
+
+History: (none)
+Follow-up: "what's on the board right now"
+Output: {"query": "board", "type": "broad"}
 
 History:
 User: what tasks do I have
 Assistant: You have a grocery task and a travel task.
 Follow-up: "the food one"
-Output: food task`;
+Output: {"query": "food task", "type": "specific"}`;
 
 const SYSTEM_PROMPT = `You are an assistant for a sticky notes board. Answer ONLY using the notes given to you below. Do not use outside knowledge.
 
@@ -56,7 +68,8 @@ HOW TO ANSWER:
 6. Do not mention note IDs, scores, "context", "JSON", or how you work.
 7. If the question is about your capabilities (e.g. "what can you do?", "what can the bot do?", "what are you?"), explain that you can answer questions about the sticky notes on the board — you can find, summarize, and list information from the notes. Do NOT refuse to answer.
 8. If the question is clearly not about the sticky notes board and not about your capabilities (e.g. general knowledge, current events, personal advice), reply exactly: "I can only answer questions about the sticky notes board."
-Be complete first, brief second — a longer correct answer is better than a short incomplete one.`;
+9. Keep every answer SHORT. For a whole-board summary, use a compact bullet list — one short line per note, keywords only, no filler sentences, no repeating a note's text back at length. Aim for under ~1500 characters total. Only go longer when the user explicitly asks for detail.
+Be brief but complete — every bullet earns its place.`;
 
 
 const GENERATION_MODEL = "openai/gpt-oss-20b";
@@ -89,14 +102,23 @@ export const chatService = {
     question: string,
     history: Message[] = []
   ): Promise<ChatResponse> {
-    const searchQuery = await rewriteQuery(question, history);
-    const embedding = await embeddingService.generateEmbedding(searchQuery);
-
-    const similarNotes = await boardRepository.searchSimilarNotes(embedding, undefined, searchQuery);
+    const { query: searchQuery, type } = await rewriteQuery(question, history);
+    let similarNotes;
+    if (type === "broad") {
+      const allNotes = await boardRepository.getAllNotes();
+      similarNotes = allNotes.map((n) => ({
+        id: n.id,
+        description: n.description,
+        similarity: 1,
+      }));
+    } else {
+      const embedding = await embeddingService.generateEmbedding(searchQuery);
+      similarNotes = await boardRepository.searchSimilarNotes(embedding, undefined, searchQuery);
+    }
 
     const context =
       similarNotes.length > 0
-        ? `Relevant sticky notes:\n${similarNotes.map((n, i) => `${i + 1}. "${n.description}"`).join("\n")}`
+        ? `${type === "broad" ? "All notes currently on the sticky board" : "Relevant sticky notes"}:\n${similarNotes.map((n, i) => `${i + 1}. "${n.description}"`).join("\n")}`
         : "No relevant sticky notes found.";
 
     const messages: { role: "system" | "user" | "assistant"; content: string }[] = [];
@@ -106,7 +128,7 @@ export const chatService = {
       content: `${SYSTEM_PROMPT}\n\n${context}`,
     });
 
-    const recentHistory = history.slice(-MAX_HISTORY);
+    const recentHistory = history.slice(-MAX_HISTORY_MESSAGES);
     for (const msg of recentHistory) {
       messages.push({
         role: msg.role === "assistant" ? "assistant" : "user",
@@ -132,7 +154,40 @@ export const chatService = {
   },
 };
 
-async function rewriteQuery(question: string, history: Message[]): Promise<string> {
+interface RewrittenQuery {
+  query: string;
+  type: "broad" | "specific";
+}
+
+function parseRewriteCompletion(
+  raw: string | undefined,
+  fallbackQuery: string
+): RewrittenQuery {
+  if (raw) {
+    const trimmed = raw.trim();
+    const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    const candidate = fenced ? fenced[1] : trimmed;
+    try {
+      const parsed = JSON.parse(candidate);
+      if (parsed && typeof parsed === "object") {
+        const p = parsed as Partial<RewrittenQuery>;
+        const query =
+          typeof p.query === "string" && p.query.trim()
+            ? p.query.trim()
+            : fallbackQuery;
+        const type = p.type === "broad" ? "broad" : "specific";
+        return { query, type };
+      }
+    } catch {
+    }
+  }
+  return { query: fallbackQuery, type: "specific" };
+}
+
+async function rewriteQuery(
+  question: string,
+  history: Message[]
+): Promise<RewrittenQuery> {
   if (history.length === 0) {
     const client = getClient();
     const response = await client.chat.completions.create({
@@ -145,10 +200,10 @@ async function rewriteQuery(question: string, history: Message[]): Promise<strin
     });
 
     const rewritten = response.choices?.[0]?.message?.content?.trim();
-    return rewritten && rewritten.length > 0 ? rewritten : question;
+    return parseRewriteCompletion(rewritten, question);
   }
 
-  const recentHistory = history.slice(-4); 
+  const recentHistory = history.slice(-MAX_HISTORY_MESSAGES); 
   const historyText = recentHistory
     .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
     .join("\n");
@@ -165,5 +220,5 @@ async function rewriteQuery(question: string, history: Message[]): Promise<strin
 
   const rewritten = response.choices?.[0]?.message?.content?.trim();
 
-  return rewritten && rewritten.length > 0 ? rewritten : question;
+  return parseRewriteCompletion(rewritten, question);
 }

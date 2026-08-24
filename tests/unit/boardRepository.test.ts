@@ -81,6 +81,33 @@ describe("boardRepository", () => {
     });
   });
 
+  describe("getAllNotes", () => {
+    it("should return all notes with ids and descriptions", async () => {
+      mockPrisma.note.findMany.mockResolvedValue([
+        { id: 1, description: "Buy groceries" },
+        { id: 2, description: "Book a flight" },
+      ]);
+
+      const result = await boardRepository.getAllNotes();
+
+      expect(result).toEqual([
+        { id: 1, description: "Buy groceries" },
+        { id: 2, description: "Book a flight" },
+      ]);
+      expect(mockPrisma.note.findMany).toHaveBeenCalledWith({
+        select: { id: true, description: true },
+      });
+    });
+
+    it("should return an empty array when no notes exist", async () => {
+      mockPrisma.note.findMany.mockResolvedValue([]);
+
+      const result = await boardRepository.getAllNotes();
+
+      expect(result).toEqual([]);
+    });
+  });
+
   describe("countNotesByIp", () => {
     it("should return the count of notes for a given IP", async () => {
       mockPrisma.note.count.mockResolvedValue(3);

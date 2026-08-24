@@ -2,11 +2,13 @@ import { describe, it, expect } from "vitest";
 import {
   MAX_NOTE_DESCRIPTION_LENGTH,
   MAX_CHAT_MESSAGE_LENGTH,
+  MAX_HISTORY_MESSAGES,
   MAX_HISTORY_MESSAGE_LENGTH,
   isValidHexColor,
   isValidNoteDescription,
   isValidChatMessage,
   isValidHistoryMessage,
+  sanitizeHistoryMessages,
 } from "../../util/validation.js";
 
 describe("validation util", () => {
@@ -108,6 +110,47 @@ describe("validation util", () => {
       expect(isValidHistoryMessage(42)).toBe(false);
       expect(isValidHistoryMessage(null)).toBe(false);
       expect(isValidHistoryMessage(undefined)).toBe(false);
+    });
+  });
+
+  describe("sanitizeHistoryMessages", () => {
+    it("should return [] for non-array input", () => {
+      expect(sanitizeHistoryMessages("nope")).toEqual([]);
+      expect(sanitizeHistoryMessages(42)).toEqual([]);
+      expect(sanitizeHistoryMessages(null)).toEqual([]);
+      expect(sanitizeHistoryMessages(undefined)).toEqual([]);
+    });
+
+    it("should keep only valid, non-empty messages in order", () => {
+      const result = sanitizeHistoryMessages([
+        { role: "user", content: "oldest" },
+        { role: "system", content: "skip me" },
+        { role: "user", content: "   " },
+        { role: "user", content: 123 },
+        { role: "assistant", content: "recent" },
+      ]);
+      expect(result).toEqual([
+        { role: "user", content: "oldest" },
+        { role: "assistant", content: "recent" },
+      ]);
+    });
+
+    it("should clamp content to MAX_HISTORY_MESSAGE_LENGTH", () => {
+      const long = "a".repeat(MAX_HISTORY_MESSAGE_LENGTH + 50);
+      const result = sanitizeHistoryMessages([{ role: "user", content: long }]);
+      expect(result).toHaveLength(1);
+      expect(result[0].content.length).toBe(MAX_HISTORY_MESSAGE_LENGTH);
+    });
+
+    it("should keep only the most recent messages", () => {
+      const many = Array.from({ length: 25 }, (_, i) => ({
+        role: "user" as const,
+        content: `msg-${i}`,
+      }));
+      const result = sanitizeHistoryMessages(many);
+      expect(result).toHaveLength(MAX_HISTORY_MESSAGES);
+      expect(result[0].content).toBe("msg-20");
+      expect(result[result.length - 1].content).toBe("msg-24");
     });
   });
 });

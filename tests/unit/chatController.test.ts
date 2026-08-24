@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Request, Response } from "express";
+import { MAX_HISTORY_MESSAGE_LENGTH } from "../../util/validation.js";
 
 vi.mock("../../src/service/chat.service.js", () => ({
   chatService: {
@@ -102,44 +103,50 @@ describe("chatController", () => {
       expect(chatService.chat).not.toHaveBeenCalled();
     });
 
-    it("should return 400 when history message has invalid role", async () => {
+    it("should drop history messages with invalid roles instead of rejecting", async () => {
       const req = mockReq({
         body: {
           question: "Hello",
-          history: [{ role: "system", content: "Hi" }],
+          history: [
+            { role: "system", content: "Hi" },
+            { role: "user", content: "Valid" },
+          ],
         },
       });
       const res = mockRes();
+      vi.mocked(chatService.chat).mockResolvedValue({
+        answer: "Hi!",
+        sources: [],
+      });
 
       await chatController.chat(req, res);
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: "History messages must have a valid role (user/assistant) and content no longer than 500 characters",
-        data: null,
-      });
-      expect(chatService.chat).not.toHaveBeenCalled();
+      expect(chatService.chat).toHaveBeenCalledWith("Hello", [
+        { role: "user", content: "Valid" },
+      ]);
+      expect(res.status).not.toHaveBeenCalledWith(400);
     });
 
-    it("should return 400 when history message content is too long", async () => {
+    it("should truncate over-long history content instead of rejecting", async () => {
+      const longContent = "a".repeat(MAX_HISTORY_MESSAGE_LENGTH + 100);
       const req = mockReq({
         body: {
           question: "Hello",
-          history: [{ role: "user", content: "a".repeat(501) }],
+          history: [{ role: "user", content: longContent }],
         },
       });
       const res = mockRes();
+      vi.mocked(chatService.chat).mockResolvedValue({
+        answer: "Hi!",
+        sources: [],
+      });
 
       await chatController.chat(req, res);
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: "History messages must have a valid role (user/assistant) and content no longer than 500 characters",
-        data: null,
-      });
-      expect(chatService.chat).not.toHaveBeenCalled();
+      expect(chatService.chat).toHaveBeenCalledWith("Hello", [
+        { role: "user", content: longContent.slice(0, MAX_HISTORY_MESSAGE_LENGTH) },
+      ]);
+      expect(res.status).not.toHaveBeenCalledWith(400);
     });
 
     it("should return 200 on success", async () => {

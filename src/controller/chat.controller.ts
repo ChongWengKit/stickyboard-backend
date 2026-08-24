@@ -2,9 +2,8 @@ import { Request, Response } from "express";
 import { chatService } from "../service/chat.service.js";
 import {
   MAX_CHAT_MESSAGE_LENGTH,
-  MAX_HISTORY_MESSAGE_LENGTH,
   isValidChatMessage,
-  isValidHistoryMessage,
+  sanitizeHistoryMessages,
 } from "../../util/validation.js";
 
 export const chatController = {
@@ -30,28 +29,17 @@ export const chatController = {
         return;
       }
 
-      if (history !== undefined && history !== null) {
-        if (!Array.isArray(history)) {
-          res.status(400).json({
-            success: false,
-            message: "History must be an array of messages",
-            data: null,
-          });
-          return;
-        }
-        for (const msg of history) {
-          if (!isValidHistoryMessage(msg)) {
-            res.status(400).json({
-              success: false,
-              message: "History messages must have a valid role (user/assistant) and content no longer than 500 characters",
-              data: null,
-            });
-            return;
-          }
-        }
+      if (history !== undefined && history !== null && !Array.isArray(history)) {
+        res.status(400).json({
+          success: false,
+          message: "History must be an array of messages",
+          data: null,
+        });
+        return;
       }
+      const cleanHistory = sanitizeHistoryMessages(history ?? []);
 
-      const result = await chatService.chat(question.trim(), history ?? []);
+      const result = await chatService.chat(question.trim(), cleanHistory);
 
       res.json({
         success: true,
