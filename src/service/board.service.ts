@@ -1,7 +1,12 @@
 import { boardRepository } from "../respository/board.repository.js";
 import { embeddingService } from "./embedding.service.js";
+import { triggerNoteAdded } from "./pusher.service.js";
 import { chunkText } from "../../util/chunking.js";
-import { MAX_NOTES_PER_IP } from "../../util/validation.js";
+import {
+  MAX_NOTES_PER_IP,
+  isValidHexColor,
+  isValidNoteDescription,
+} from "../../util/validation.js";
 import type { Note } from "@prisma/client";
 
 export const boardService = {
@@ -30,35 +35,45 @@ export const boardService = {
     color: string;
     ipAddress: string;
   }) {
+    const required = [data.x, data.y, data.description, data.color, data.ipAddress];
+    if (required.some((v) => v == null || v === "")) {
+      throw new Error("VALIDATION_ERROR");
+    }
+    if (!isValidNoteDescription(data.description)) {
+      throw new Error("VALIDATION_ERROR");
+    }
+    if (!isValidHexColor(data.color)) {
+      throw new Error("VALIDATION_ERROR");
+    }
+
     const count = await boardRepository.countNotesByIp(data.ipAddress);
     if (count >= MAX_NOTES_PER_IP) {
-      throw new Error(
-        `IP limit reached: maximum ${MAX_NOTES_PER_IP} notes per IP address`
-      );
+      throw new Error("IP_LIMIT_REACHED");
     }
 
     const cleanText = data.description.replace(/\n/g, " ");
-    const note = await boardRepository.addNote(data);
-
     const chunks = chunkText(cleanText);
     const chunkEmbeddings = await Promise.all(
       chunks.map((chunk) => embeddingService.generateEmbedding(chunk))
     );
-    await boardRepository.insertChunks(
-      chunks.map((content, i) => ({
-        noteId: note.id,
-        content,
-        embedding: chunkEmbeddings[i],
-      }))
-    );
+    const chunkData = chunks.map((content, i) => ({
+      content,
+      embedding: chunkEmbeddings[i],
+    }));
 
-    return {
+    const note = await boardRepository.addNoteWithChunks(data, chunkData);
+
+    const result = {
       id: String(note.id),
       x: note.x,
       y: note.y,
       description: note.description,
       color: note.color,
     };
+
+    await triggerNoteAdded(result);
+
+    return result;
   },
 
   async deleteNotesByIds(ids: number[]) {

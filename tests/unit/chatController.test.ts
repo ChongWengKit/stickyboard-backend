@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Request, Response } from "express";
-import { MAX_HISTORY_MESSAGE_LENGTH } from "../../util/validation.js";
 
 vi.mock("../../src/service/chat.service.js", () => ({
   chatService: {
@@ -31,79 +30,84 @@ describe("chatController", () => {
     it("should return 400 when question is missing", async () => {
       const req = mockReq({ body: {} });
       const res = mockRes();
+      vi.mocked(chatService.chat).mockRejectedValue(new Error("VALIDATION_ERROR"));
 
       await chatController.chat(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: "Missing required field: question",
+        message: "VALIDATION_ERROR",
         data: null,
       });
-      expect(chatService.chat).not.toHaveBeenCalled();
+      expect(chatService.chat).toHaveBeenCalled();
     });
 
     it("should return 400 when question is empty string", async () => {
       const req = mockReq({ body: { question: "" } });
       const res = mockRes();
+      vi.mocked(chatService.chat).mockRejectedValue(new Error("VALIDATION_ERROR"));
 
       await chatController.chat(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: "Missing required field: question",
+        message: "VALIDATION_ERROR",
         data: null,
       });
-      expect(chatService.chat).not.toHaveBeenCalled();
+      expect(chatService.chat).toHaveBeenCalled();
     });
 
     it("should return 400 when question is whitespace only", async () => {
       const req = mockReq({ body: { question: "   " } });
       const res = mockRes();
+      vi.mocked(chatService.chat).mockRejectedValue(new Error("VALIDATION_ERROR"));
 
       await chatController.chat(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: "Missing required field: question",
+        message: "VALIDATION_ERROR",
         data: null,
       });
-      expect(chatService.chat).not.toHaveBeenCalled();
+      expect(chatService.chat).toHaveBeenCalled();
     });
 
     it("should return 400 when question is too long", async () => {
       const req = mockReq({ body: { question: "a".repeat(501) } });
       const res = mockRes();
+      vi.mocked(chatService.chat).mockRejectedValue(new Error("VALIDATION_ERROR"));
 
       await chatController.chat(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: "Question must be a non-empty string no longer than 500 characters",
+        message: "VALIDATION_ERROR",
         data: null,
       });
-      expect(chatService.chat).not.toHaveBeenCalled();
+      expect(chatService.chat).toHaveBeenCalled();
     });
 
     it("should return 400 when history is not an array", async () => {
       const req = mockReq({ body: { question: "Hello", history: "not-an-array" } });
       const res = mockRes();
+      vi.mocked(chatService.chat).mockRejectedValue(new Error("VALIDATION_ERROR"));
 
       await chatController.chat(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: "History must be an array of messages",
+        message: "VALIDATION_ERROR",
         data: null,
       });
-      expect(chatService.chat).not.toHaveBeenCalled();
+      expect(chatService.chat).toHaveBeenCalled();
     });
 
-    it("should drop history messages with invalid roles instead of rejecting", async () => {
+    it("should pass raw history through to the service (sanitization lives in the service)", async () => {
       const req = mockReq({
         body: {
           question: "Hello",
@@ -122,13 +126,14 @@ describe("chatController", () => {
       await chatController.chat(req, res);
 
       expect(chatService.chat).toHaveBeenCalledWith("Hello", [
+        { role: "system", content: "Hi" },
         { role: "user", content: "Valid" },
       ]);
       expect(res.status).not.toHaveBeenCalledWith(400);
     });
 
-    it("should truncate over-long history content instead of rejecting", async () => {
-      const longContent = "a".repeat(MAX_HISTORY_MESSAGE_LENGTH + 100);
+    it("should pass over-long history content through unchanged (truncation lives in the service)", async () => {
+      const longContent = "a".repeat(2100);
       const req = mockReq({
         body: {
           question: "Hello",
@@ -144,7 +149,7 @@ describe("chatController", () => {
       await chatController.chat(req, res);
 
       expect(chatService.chat).toHaveBeenCalledWith("Hello", [
-        { role: "user", content: longContent.slice(0, MAX_HISTORY_MESSAGE_LENGTH) },
+        { role: "user", content: longContent },
       ]);
       expect(res.status).not.toHaveBeenCalledWith(400);
     });

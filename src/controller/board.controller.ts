@@ -1,12 +1,6 @@
 import { Request, Response } from "express";
 import { boardService } from "../service/board.service.js";
-import { triggerNoteAdded } from "../service/pusher.service.js";
 import { getClientIp } from "../../util/ipUtils.js";
-import {
-  MAX_NOTE_DESCRIPTION_LENGTH,
-  isValidHexColor,
-  isValidNoteDescription,
-} from "../../util/validation.js";
 export const boardController = {
   async getBoard(req: Request, res: Response) {
     try {
@@ -20,54 +14,24 @@ export const boardController = {
   async addNote(req: Request, res: Response) {
     try {
       const { x, y, description, color } = req.body;
-      if (x == null || y == null || !description || !color) {
-        res
-          .status(400)
-          .json({ success: false, message: "Missing required fields: x, y, description, color", data: null });
-        return;
-      }
-
-      if (!isValidNoteDescription(description)) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            message: `Description must be a non-empty string no longer than ${MAX_NOTE_DESCRIPTION_LENGTH} characters`,
-            data: null,
-          });
-        return;
-      }
-
-      if (!isValidHexColor(color)) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            message: "Color must be a valid hex color (e.g. #ffffff or #fff)",
-            data: null,
-          });
-        return;
-      }
 
       const ipAddress = getClientIp(req);
-      if(ipAddress === "unknown") {
+      if (ipAddress === "unknown") {
         res
           .status(400)
           .json({ success: false, message: "Failed to get client IP address", data: null });
         return;
       }
-      const note = await boardService.addNote({
-        x,
-        y,
-        description,
-        color,
-        ipAddress,
-      });
-      await triggerNoteAdded(note);
+
+      const note = await boardService.addNote({ x, y, description, color, ipAddress });
       res.status(201).json({ success: true, message: "Note added successfully", data: note });
     } catch (error: any) {
-      if (error.message?.includes("IP limit reached")) {
+      if (error?.message === "IP_LIMIT_REACHED") {
         res.status(429).json({ success: false, message: error.message, data: null });
+        return;
+      }
+      if (error?.message === "VALIDATION_ERROR") {
+        res.status(400).json({ success: false, message: error.message, data: null });
         return;
       }
       res.status(500).json({ success: false, message: "Failed to add note", data: null });

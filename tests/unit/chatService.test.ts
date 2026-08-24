@@ -131,5 +131,36 @@ describe("chatService", () => {
       expect(boardRepository.searchSimilarNotes).toHaveBeenCalledTimes(1);
       expect(boardRepository.getAllNotes).not.toHaveBeenCalled();
     });
+
+    it("should throw an error when question is missing or empty", async () => {
+      await expect(chatService.chat("", [])).rejects.toThrow("VALIDATION_ERROR");
+      await expect(chatService.chat("   ", [])).rejects.toThrow("VALIDATION_ERROR");
+    });
+
+    it("should throw an error when question is too long", async () => {
+      await expect(chatService.chat("a".repeat(501), [])).rejects.toThrow("VALIDATION_ERROR");
+    });
+
+    it("should throw an error when history is not an array", async () => {
+      await expect(chatService.chat("Hello", "not-an-array" as any)).rejects.toThrow(
+        "VALIDATION_ERROR"
+      );
+    });
+
+    it("should drop invalid history entries before use", async () => {
+      mockClient.chat.completions.create
+        .mockResolvedValueOnce(completion(JSON.stringify({ query: "board", type: "broad" })))
+        .mockResolvedValueOnce(completion("Summary."));
+      vi.mocked(boardRepository.getAllNotes).mockResolvedValue([
+        { id: 1, description: "Note X" },
+      ]);
+
+      const result = await chatService.chat("what's on the board", [
+        { role: "system", content: "Hi" },
+      ] as any);
+
+      expect(boardRepository.getAllNotes).toHaveBeenCalledTimes(1);
+      expect(result.answer).toBe("Summary.");
+    });
   });
 });

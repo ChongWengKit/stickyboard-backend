@@ -5,8 +5,9 @@ import {
   MAX_NOTE_DESCRIPTION_LENGTH,
   MAX_CHAT_MESSAGE_LENGTH,
   MAX_HISTORY_MESSAGES,
-  MAX_HISTORY_MESSAGE_LENGTH,
   MAX_NOTES_PER_IP,
+  isValidChatMessage,
+  sanitizeHistoryMessages,
 } from "../../util/validation.js";
 
 let groq: any = null;
@@ -102,7 +103,17 @@ export const chatService = {
     question: string,
     history: Message[] = []
   ): Promise<ChatResponse> {
-    const { query: searchQuery, type } = await rewriteQuery(question, history);
+    if (!isValidChatMessage(question)) {
+      throw new Error("VALIDATION_ERROR");
+    }
+    if (!Array.isArray(history)) {
+      throw new Error("VALIDATION_ERROR");
+    }
+    const sanitizedHistory = sanitizeHistoryMessages(history);
+    const { query: searchQuery, type } = await rewriteQuery(
+      question,
+      sanitizedHistory
+    );
     let similarNotes;
     if (type === "broad") {
       const allNotes = await boardRepository.getAllNotes();
@@ -128,7 +139,7 @@ export const chatService = {
       content: `${SYSTEM_PROMPT}\n\n${context}`,
     });
 
-    const recentHistory = history.slice(-MAX_HISTORY_MESSAGES);
+    const recentHistory = sanitizedHistory.slice(-MAX_HISTORY_MESSAGES);
     for (const msg of recentHistory) {
       messages.push({
         role: msg.role === "assistant" ? "assistant" : "user",
