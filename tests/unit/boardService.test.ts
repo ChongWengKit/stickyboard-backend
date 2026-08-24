@@ -16,6 +16,7 @@ vi.mock("../../src/respository/board.repository.js", () => ({
     getNoteIds: vi.fn(),
     countNotesByIp: vi.fn(),
     addNote: vi.fn(),
+    addNoteWithChunks: vi.fn(),
     insertChunks: vi.fn(),
     deleteChunksByNoteIds: vi.fn(),
     deleteChunksByNoteId: vi.fn(),
@@ -80,10 +81,9 @@ describe("boardService", () => {
     it("should add a note when IP limit is not reached", async () => {
       vi.mocked(boardRepository.countNotesByIp).mockResolvedValue(2);
       const createdNote = { id: 5, x: 100, y: 200, description: "New note", color: "#00ff00", ipAddress: "::1", boardId: 1 };
-      vi.mocked(boardRepository.addNote).mockResolvedValue(createdNote);
-      vi.mocked(chunkText).mockReturnValue([]);
-      vi.mocked(embeddingService.generateEmbedding).mockResolvedValue([]);
-      vi.mocked(boardRepository.insertChunks).mockResolvedValue(undefined as any);
+      vi.mocked(boardRepository.addNoteWithChunks).mockResolvedValue(createdNote);
+      vi.mocked(chunkText).mockReturnValue(["New", "note"]);
+      vi.mocked(embeddingService.generateEmbedding).mockResolvedValue([0.1, 0.2]);
 
       const result = await boardService.addNote({
         x: 100, y: 200, description: "New note", color: "#00ff00", ipAddress: "::1",
@@ -91,9 +91,15 @@ describe("boardService", () => {
 
       expect(result).toEqual({ id: "5", x: 100, y: 200, description: "New note", color: "#00ff00" });
       expect(boardRepository.countNotesByIp).toHaveBeenCalledWith("::1");
-      expect(boardRepository.addNote).toHaveBeenCalledWith({
-        x: 100, y: 200, description: "New note", color: "#00ff00", ipAddress: "::1",
-      });
+      expect(boardRepository.addNoteWithChunks).toHaveBeenCalledWith(
+        { x: 100, y: 200, description: "New note", color: "#00ff00", ipAddress: "::1" },
+        [
+          { content: "New", embedding: [0.1, 0.2] },
+          { content: "note", embedding: [0.1, 0.2] },
+        ]
+      );
+      expect(boardRepository.addNote).not.toHaveBeenCalled();
+      expect(boardRepository.insertChunks).not.toHaveBeenCalled();
     });
 
     it("should throw when IP limit is reached", async () => {

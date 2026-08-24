@@ -141,6 +141,47 @@ describe("boardRepository", () => {
     });
   });
 
+  describe("addNoteWithChunks", () => {
+    it("should atomically create a note and insert chunks in a single transaction", async () => {
+      const noteInput = { x: 100, y: 200, description: "Test note", color: "blue", ipAddress: "::1" };
+      const expectedNote = { id: 7, description: "Test note", color: "blue", x: 100, y: 200, ipAddress: "::1", boardId: 1 };
+
+      mockPrisma.$transaction.mockImplementation(async (fn: Function) => fn(mockPrisma));
+      mockPrisma.board.findFirst.mockResolvedValue({ id: 1, background: "" });
+      mockPrisma.note.create.mockResolvedValue(expectedNote);
+      mockPrisma.$queryRawUnsafe.mockResolvedValue(undefined);
+
+      const result = await boardRepository.addNoteWithChunks(noteInput, [
+        { content: "Test", embedding: [0.1, 0.2] },
+      ]);
+
+      expect(result).toEqual(expectedNote);
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
+      expect(mockPrisma.note.create).toHaveBeenCalledWith({
+        data: {
+          x: 100, y: 200, description: "Test note", color: "blue",
+          ipAddress: "::1", boardId: 1,
+        },
+      });
+      expect(mockRedisInstance.del).toHaveBeenCalledWith("board:data");
+    });
+
+    it("should not insert chunks when chunks are empty (note only)", async () => {
+      const noteInput = { x: 1, y: 2, description: "Note", color: "red", ipAddress: "::1" };
+      const expectedNote = { id: 9, description: "Note", color: "red", x: 1, y: 2, ipAddress: "::1", boardId: 1 };
+
+      mockPrisma.$transaction.mockImplementation(async (fn: Function) => fn(mockPrisma));
+      mockPrisma.board.findFirst.mockResolvedValue({ id: 1, background: "" });
+      mockPrisma.note.create.mockResolvedValue(expectedNote);
+
+      const result = await boardRepository.addNoteWithChunks(noteInput, []);
+
+      expect(result).toEqual(expectedNote);
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
+      expect(mockPrisma.$queryRawUnsafe).not.toHaveBeenCalled();
+    });
+  });
+
   describe("deleteNote", () => {
     it("should delete and return the note", async () => {
       const expectedNote = { id: 1, description: "test", color: "red", x: 50, y: 50, ipAddress: "::1", boardId: 1 };

@@ -38,19 +38,16 @@ export const boardService = {
     }
 
     const cleanText = data.description.replace(/\n/g, " ");
-    const note = await boardRepository.addNote(data);
-
     const chunks = chunkText(cleanText);
     const chunkEmbeddings = await Promise.all(
       chunks.map((chunk) => embeddingService.generateEmbedding(chunk))
     );
-    await boardRepository.insertChunks(
-      chunks.map((content, i) => ({
-        noteId: note.id,
-        content,
-        embedding: chunkEmbeddings[i],
-      }))
-    );
+    const chunkData = chunks.map((content, i) => ({
+      content,
+      embedding: chunkEmbeddings[i],
+    }));
+
+    const note = await boardRepository.addNoteWithChunks(data, chunkData);
 
     return {
       id: String(note.id),
