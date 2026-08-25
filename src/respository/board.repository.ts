@@ -39,9 +39,9 @@ export const boardRepository = {
     const cleanedQuestion = question ? prepareQueryForSearchSimilarNotes(question) : "";
 
     const chunkResults = await prisma.$queryRawUnsafe<{ noteId: number; similarity: number }[]>(
-      `SELECT "noteId", MAX(1 - (embedding <=> $1::vector)) AS similarity
+      `SELECT "noteId", MAX(1 - (embedding <=> $1::halfvec)) AS similarity
        FROM "NoteChunk"
-       WHERE 1 - (embedding <=> $1::vector) > $2
+       WHERE 1 - (embedding <=> $1::halfvec) > $2
        GROUP BY "noteId"
        ORDER BY similarity DESC
        LIMIT 20`,
@@ -109,7 +109,7 @@ export const boardRepository = {
       const embeddingStr = `[${chunk.embedding.join(",")}]`;
       await prisma.$queryRawUnsafe(
         `INSERT INTO "NoteChunk" ("noteId", content, embedding)
-         VALUES ($1, $2, $3::vector)`,
+         VALUES ($1, $2, $3::halfvec)`,
         chunk.noteId,
         chunk.content,
         embeddingStr
@@ -235,7 +235,7 @@ export const boardRepository = {
         const embeddingStr = `[${chunk.embedding.join(",")}]`;
         await tx.$queryRawUnsafe(
           `INSERT INTO "NoteChunk" ("noteId", content, embedding)
-           VALUES ($1, $2, $3::vector)`,
+           VALUES ($1, $2, $3::halfvec)`,
           created.id,
           chunk.content,
           embeddingStr
