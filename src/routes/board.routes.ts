@@ -8,5 +8,7 @@ router.get("/board", boardController.getBoard);
 router.post("/board", boardController.addNote);
 router.get("/board/snapshot", cronController.triggerSnapshot);
 router.post("/chat", chatController.chat);
+router.get("/chat/messages", chatController.getMessages);
+router.delete("/chat", chatController.clearMessages);
 
 export default router;

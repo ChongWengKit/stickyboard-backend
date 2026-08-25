@@ -1,12 +1,15 @@
 import { Groq } from "groq-sdk";
 import { embeddingService } from "./embedding.service.js";
 import { boardRepository } from "../respository/board.repository.js";
+import { chatRepository } from "../respository/chat.repository.js";
+import { encrypt, decrypt } from "../../util/crypto.js";
 import {
   MAX_NOTE_DESCRIPTION_LENGTH,
   MAX_CHAT_MESSAGE_LENGTH,
   MAX_HISTORY_MESSAGES,
-  MAX_HISTORY_MESSAGE_LENGTH,
   MAX_NOTES_PER_IP,
+  isValidChatMessage,
+  sanitizeHistoryMessages,
 } from "../../util/validation.js";
 
 let groq: any = null;
@@ -98,11 +101,31 @@ interface ChatResponse {
 }
 
 export const chatService = {
-  async chat(
-    question: string,
-    history: Message[] = []
-  ): Promise<ChatResponse> {
-    const { query: searchQuery, type } = await rewriteQuery(question, history);
+  async chat(question: string, ipAddress: string): Promise<ChatResponse> {
+    if (!isValidChatMessage(question)) {
+      throw new Error("VALIDATION_ERROR");
+    }
+    if (!ipAddress || ipAddress === "unknown") {
+      throw new Error("VALIDATION_ERROR");
+    }
+
+    const stored = await chatRepository.getHistoryByIp(ipAddress);
+    stored.reverse();
+    const history: Message[] = [];
+    for (const msg of stored) {
+      history.push({
+        role: msg.role === "assistant" ? "assistant" : "user",
+        content: decrypt({
+          iv: msg.iv,
+          ciphertext: msg.ciphertext,
+          tag: msg.tag,
+        }),
+      });
+    }
+    const { query: searchQuery, type } = await rewriteQuery(
+      question,
+      history
+    );
     let similarNotes;
     if (type === "broad") {
       const allNotes = await boardRepository.getAllNotes();
@@ -128,8 +151,7 @@ export const chatService = {
       content: `${SYSTEM_PROMPT}\n\n${context}`,
     });
 
-    const recentHistory = history.slice(-MAX_HISTORY_MESSAGES);
-    for (const msg of recentHistory) {
+    for (const msg of history) {
       messages.push({
         role: msg.role === "assistant" ? "assistant" : "user",
         content: msg.content,
@@ -147,10 +169,49 @@ export const chatService = {
     });
 
     const answer = response.choices?.[0]?.message?.content ?? "Sorry, I couldn't generate a response.";
+
+    const userEnc = encrypt(question);
+    await chatRepository.createMessage({
+      ipAddress,
+      role: "user",
+      ...userEnc,
+    });
+    const assistantEnc = encrypt(answer);
+    await chatRepository.createMessage({
+      ipAddress,
+      role: "assistant",
+      ...assistantEnc,
+    });
+
     return {
       answer,
       sources: similarNotes,
     };
+  },
+
+  async getMessages(ipAddress: string) {
+    if (!ipAddress || ipAddress === "unknown") {
+      throw new Error("VALIDATION_ERROR");
+    }
+    const stored = await chatRepository.getMessagesByIp(ipAddress);
+    stored.reverse();
+    return stored.map((msg) => ({
+      id: String(msg.id),
+      role: msg.role === "assistant" ? "assistant" : "user",
+      content: decrypt({
+        iv: msg.iv,
+        ciphertext: msg.ciphertext,
+        tag: msg.tag,
+      }),
+      timestamp: msg.createdAt.getTime(),
+    }));
+  },
+
+  async clearMessages(ipAddress: string) {
+    if (!ipAddress || ipAddress === "unknown") {
+      throw new Error("VALIDATION_ERROR");
+    }
+    return await chatRepository.deleteAllByIp(ipAddress);
   },
 };
 

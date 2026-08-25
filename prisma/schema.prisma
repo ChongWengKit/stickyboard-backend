@@ -26,3 +26,15 @@ model Note {
   board       Board  @relation(fields: [boardId], references: [id])
   @@index([ipAddress])
 }
+
+model ChatMessage {
+  id         Int      @id @default(autoincrement())
+  ipAddress  String
+  role       String
+  ciphertext String
+  iv         String
+  tag        String
+  createdAt  DateTime @default(now())
+
+  @@index([ipAddress, createdAt])
+}

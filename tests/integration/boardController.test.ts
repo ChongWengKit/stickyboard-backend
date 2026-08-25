@@ -9,17 +9,12 @@ vi.mock("../../src/service/board.service.js", () => ({
   },
 }));
 
-vi.mock("../../src/service/pusher.service.js", () => ({
-  triggerNoteAdded: vi.fn(),
-}));
-
 vi.mock("../../util/ipUtils.js", () => ({
   getClientIp: vi.fn(),
 }));
 
 const { boardController } = await import("../../src/controller/board.controller.js");
 const { boardService } = await import("../../src/service/board.service.js");
-const { triggerNoteAdded } = await import("../../src/service/pusher.service.js");
 const { getClientIp } = await import("../../util/ipUtils.js");
 
 function mockReq(overrides: Partial<Request> = {}): Request {
@@ -76,61 +71,69 @@ describe("boardController", () => {
     it("should return 400 when required fields are missing", async () => {
       const req = mockReq({ body: { x: 100 } }); // missing y, description, color
       const res = mockRes();
+      vi.mocked(getClientIp).mockReturnValue("192.168.1.1");
+      vi.mocked(boardService.addNote).mockRejectedValue(new Error("VALIDATION_ERROR"));
 
       await boardController.addNote(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: "Missing required fields: x, y, description, color",
+        message: "VALIDATION_ERROR",
         data: null,
       });
-      expect(boardService.addNote).not.toHaveBeenCalled();
+      expect(boardService.addNote).toHaveBeenCalled();
     });
 
     it("should return 400 when description is too long", async () => {
       const req = mockReq({ body: { x: 100, y: 200, description: "a".repeat(501), color: "#ffffff" } });
       const res = mockRes();
+      vi.mocked(getClientIp).mockReturnValue("192.168.1.1");
+      vi.mocked(boardService.addNote).mockRejectedValue(new Error("VALIDATION_ERROR"));
 
       await boardController.addNote(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: "Description must be a non-empty string no longer than 500 characters",
+        message: "VALIDATION_ERROR",
         data: null,
       });
-      expect(boardService.addNote).not.toHaveBeenCalled();
+      expect(boardService.addNote).toHaveBeenCalled();
     });
 
     it("should return 400 when description is empty", async () => {
       const req = mockReq({ body: { x: 100, y: 200, description: "   ", color: "#ffffff" } });
       const res = mockRes();
+      vi.mocked(getClientIp).mockReturnValue("192.168.1.1");
+      vi.mocked(boardService.addNote).mockRejectedValue(new Error("VALIDATION_ERROR"));
 
       await boardController.addNote(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: "Description must be a non-empty string no longer than 500 characters",
+        message: "VALIDATION_ERROR",
         data: null,
       });
-      expect(boardService.addNote).not.toHaveBeenCalled();
+      expect(boardService.addNote).toHaveBeenCalled();
     });
 
     it("should return 400 when color is not a valid hex color", async () => {
       const req = mockReq({ body: { x: 100, y: 200, description: "Test", color: "blue" } });
       const res = mockRes();
+      vi.mocked(getClientIp).mockReturnValue("192.168.1.1");
+      vi.mocked(boardService.addNote).mockRejectedValue(new Error("VALIDATION_ERROR"));
 
       await boardController.addNote(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: "Color must be a valid hex color (e.g. #ffffff or #fff)",
+        message: "VALIDATION_ERROR",
         data: null,
       });
-      expect(boardService.addNote).not.toHaveBeenCalled();
+      expect(boardService.addNote).toHaveBeenCalled();
     });
 
     it("should return 400 when IP address is unknown", async () => {
@@ -162,9 +165,6 @@ describe("boardController", () => {
       expect(boardService.addNote).toHaveBeenCalledWith({
         x: 100, y: 200, description: "New note", color: "#00ff00", ipAddress: "192.168.1.1",
       });
-      expect(triggerNoteAdded).toHaveBeenCalledWith({
-        id: "1", x: 100, y: 200, description: "New note", color: "#00ff00",
-      });
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith({
         success: true,
@@ -177,14 +177,14 @@ describe("boardController", () => {
       const req = mockReq({ body: { x: 10, y: 20, description: "Too many", color: "#ff0000" } });
       const res = mockRes();
       vi.mocked(getClientIp).mockReturnValue("10.0.0.1");
-      vi.mocked(boardService.addNote).mockRejectedValue(new Error("IP limit reached: maximum 5 notes per IP address"));
+      vi.mocked(boardService.addNote).mockRejectedValue(new Error("IP_LIMIT_REACHED"));
 
       await boardController.addNote(req, res);
 
       expect(res.status).toHaveBeenCalledWith(429);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: "IP limit reached: maximum 5 notes per IP address",
+        message: "IP_LIMIT_REACHED",
         data: null,
       });
     });

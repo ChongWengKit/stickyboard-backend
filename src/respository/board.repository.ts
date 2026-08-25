@@ -206,6 +206,49 @@ export const boardRepository = {
     return note;
   },
 
+  async addNoteWithChunks(
+    data: {
+      x: number;
+      y: number;
+      description: string;
+      color: string;
+      ipAddress: string;
+    },
+    chunks: { content: string; embedding: number[] }[]
+  ) {
+    const note = await prisma.$transaction(async (tx) => {
+      const board = await tx.board.findFirst();
+      if (!board) throw new Error("No board found");
+
+      const created = await tx.note.create({
+        data: {
+          x: data.x,
+          y: data.y,
+          description: data.description,
+          color: data.color,
+          ipAddress: data.ipAddress,
+          boardId: board.id,
+        },
+      });
+
+      for (const chunk of chunks) {
+        const embeddingStr = `[${chunk.embedding.join(",")}]`;
+        await tx.$queryRawUnsafe(
+          `INSERT INTO "NoteChunk" ("noteId", content, embedding)
+           VALUES ($1, $2, $3::vector)`,
+          created.id,
+          chunk.content,
+          embeddingStr
+        );
+      }
+
+      return created;
+    });
+
+    await redis.del(BOARD_CACHE_KEY);
+    return note;
+  },
+
   async deleteNote(noteId: number) {
     const result = await prisma.note.delete({
       where: { id: noteId },
