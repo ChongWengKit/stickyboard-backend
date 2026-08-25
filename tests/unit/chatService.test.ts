@@ -17,6 +17,7 @@ vi.mock("../../src/respository/chat.repository.js", () => ({
   chatRepository: {
     createMessage: vi.fn(),
     getMessagesByIp: vi.fn(),
+    getHistoryByIp: vi.fn(),
     deleteAllByIp: vi.fn(),
   },
 }));
@@ -69,6 +70,7 @@ describe("chatService", () => {
     process.env.GROQ_API_KEY = "test-key";
     process.env.CHAT_ENCRYPTION_KEY = "a".repeat(64);
     vi.mocked(chatRepository.getMessagesByIp).mockResolvedValue([]);
+    vi.mocked(chatRepository.getHistoryByIp).mockResolvedValue([]);
     vi.mocked(chatRepository.createMessage).mockResolvedValue({} as any);
     vi.mocked(chatRepository.deleteAllByIp).mockResolvedValue({ count: 0 });
   });
@@ -173,9 +175,11 @@ describe("chatService", () => {
     });
 
     it("should derive AI history from the server's stored encrypted messages", async () => {
-      vi.mocked(chatRepository.getMessagesByIp).mockResolvedValue([
-        storedMessage("user", "prior question"),
+      // getHistoryByIp returns newest-first (ORDER BY "createdAt" DESC),
+      // so the assistant's reply comes first and the service reverses it.
+      vi.mocked(chatRepository.getHistoryByIp).mockResolvedValue([
         storedMessage("assistant", "prior answer"),
+        storedMessage("user", "prior question"),
       ]);
 
       mockClient.chat.completions.create
@@ -205,9 +209,11 @@ describe("chatService", () => {
 
   describe("getMessages", () => {
     it("should return decrypted, human-readable messages for the IP", async () => {
+      // getMessagesByIp returns newest-first (ORDER BY "createdAt" DESC);
+      // the service reverses it back into oldest-first display order.
       vi.mocked(chatRepository.getMessagesByIp).mockResolvedValue([
-        storedMessage("user", "hello there"),
         storedMessage("assistant", "hi!"),
+        storedMessage("user", "hello there"),
       ]);
 
       const result = await chatService.getMessages(IP);
